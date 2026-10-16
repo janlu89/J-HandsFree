@@ -4,37 +4,42 @@
              x:Class="JHandsFree.Spike.MainPage"
              Shell.NavBarIsVisible="False">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
 
-        <Grid Grid.Row="0"
-              ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+        <Label x:Name="StatusLabel"
+               Grid.Row="0"
+               Padding="8,6,8,0"
+               FontSize="12" />
+
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*,*,*"
               ColumnSpacing="4"
               Padding="6">
-            <Label x:Name="StatusLabel"
-                   VerticalOptions="Center"
-                   FontSize="11" />
-            <Button Grid.Column="1"
+            <Button Grid.Column="0"
                     Text="UA"
                     Clicked="OnNextUserAgentClicked" />
-            <Button Grid.Column="2"
+            <Button Grid.Column="1"
                     Text="Shield"
                     Clicked="OnShieldClicked" />
-            <Button Grid.Column="3"
+            <Button Grid.Column="2"
                     Text="Native"
                     Clicked="OnNativeClicked" />
+            <Button Grid.Column="3"
+                    Text="Session"
+                    Clicked="OnSessionClicked" />
             <Button Grid.Column="4"
                     Text="Clear"
                     Clicked="OnClearDataClicked" />
         </Grid>
 
         <Label x:Name="AddressLabel"
-               Grid.Row="1"
+               Grid.Row="2"
                Padding="8,0,8,4"
                FontSize="12"
                LineBreakMode="TailTruncation" />
 
         <WebView x:Name="Browser"
-                 Grid.Row="2"
+                 Grid.Row="3"
                  HandlerChanged="OnBrowserHandlerChanged"
                  Navigating="OnBrowserNavigating"
                  Navigated="OnBrowserNavigated" />

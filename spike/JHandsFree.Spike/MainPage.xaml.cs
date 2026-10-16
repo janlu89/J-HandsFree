@@ -1,4 +1,9 @@
+using Android.Content;
+using Android.Runtime;
+using AndroidX.Core.Content;
+using AndroidX.Media3.Session;
 using AndroidX.WebKit;
+using Google.Common.Util.Concurrent;
 using AndroidCookieManager = Android.Webkit.CookieManager;
 using AndroidWebSettings = Android.Webkit.WebSettings;
 using AndroidWebStorage = Android.Webkit.WebStorage;
@@ -17,6 +22,7 @@ public partial class MainPage : ContentPage
     private bool _isDocumentStartScriptSupported;
     private string _shieldSource = string.Empty;
     private IScriptHandler? _shieldScript;
+    private MediaController? _mediaController;
 
     public MainPage()
     {
@@ -26,6 +32,8 @@ public partial class MainPage : ContentPage
     private string ShieldState => _isDocumentStartScriptSupported ? (_shieldScript is null ? "off" : "on") : "unsupported";
 
     private string NativeState => _nativeWebView is KeepVisibleWebView view ? (view.KeepWindowVisible ? "on" : "off") : "unavailable";
+
+    private string SessionState => _mediaController is null ? "off" : (_mediaController.PlayWhenReady ? "playing" : "paused");
 
     protected override bool OnBackButtonPressed()
     {
@@ -46,6 +54,7 @@ public partial class MainPage : ContentPage
         }
 
         _nativeWebView = nativeWebView;
+        SpikePlayback.WebView = nativeWebView;
         _defaultUserAgent = AndroidWebSettings.GetDefaultUserAgent(nativeWebView.Context) ?? string.Empty;
         ConfigureWebView(nativeWebView);
         ApplyUserAgent();
@@ -94,6 +103,19 @@ public partial class MainPage : ContentPage
         view.KeepWindowVisible = !view.KeepWindowVisible;
         SpikeLog.Info($"Native keep-visible {NativeState}");
         UpdateStatus();
+    }
+
+    private async void OnSessionClicked(object? sender, EventArgs e)
+    {
+        if (_mediaController is not null)
+        {
+            ToggleSessionPlayback(_mediaController);
+            return;
+        }
+
+        var permission = await Permissions.RequestAsync<Permissions.PostNotifications>();
+        SpikeLog.Info($"Notification permission: {permission}");
+        ConnectMediaController();
     }
 
     private void OnClearDataClicked(object? sender, EventArgs e)
@@ -152,9 +174,52 @@ public partial class MainPage : ContentPage
         _shieldSource = await ReadPackageFileAsync("visibility-shield.js");
     }
 
+    private void ConnectMediaController()
+    {
+        var context = Platform.AppContext;
+        var serviceComponent = new ComponentName(context, Java.Lang.Class.FromType(typeof(PlaybackService)));
+        var controllerFuture = new MediaController.Builder(context, new SessionToken(context, serviceComponent)).BuildAsync();
+        if (controllerFuture is null)
+        {
+            SpikeLog.Info("Media controller could not be built");
+            return;
+        }
+
+        controllerFuture.AddListener(new Java.Lang.Runnable(() => OnMediaControllerConnected(controllerFuture)), ContextCompat.GetMainExecutor(context));
+    }
+
+    private void OnMediaControllerConnected(IListenableFuture controllerFuture)
+    {
+        var controller = controllerFuture.Get()?.JavaCast<MediaController>();
+        if (controller is null)
+        {
+            SpikeLog.Info("Media controller connection failed");
+            return;
+        }
+
+        _mediaController = controller;
+        SpikeLog.Info("Media controller connected");
+        controller.Play();
+        UpdateStatus();
+    }
+
+    private void ToggleSessionPlayback(MediaController controller)
+    {
+        if (controller.PlayWhenReady)
+        {
+            controller.Pause();
+        }
+        else
+        {
+            controller.Play();
+        }
+
+        UpdateStatus();
+    }
+
     private void UpdateStatus()
     {
-        StatusLabel.Text = $"UA: {_userAgentMode}\nShield: {ShieldState} | Native: {NativeState}";
+        StatusLabel.Text = $"UA: {_userAgentMode} | Shield: {ShieldState} | Native: {NativeState} | Session: {SessionState}";
     }
 
     private static async Task<string> ReadPackageFileAsync(string fileName)
