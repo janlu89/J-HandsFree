@@ -136,6 +136,42 @@ Together with step 0.3, this shows that playback stops whenever Chromium conside
 - Pausing from the page's own player does not reach the session, which keeps reporting "playing" and keeps the foreground service. Page-to-app events (step 0.5) are needed to keep the session state true.
 - Swiping the app away from the recent apps while the session was paused ended the process.
 
+## Step 0.5: page bridge with an origin allowlist
+
+**Result: confirmed.** `addWebMessageListener` injects the `jhf` object only into frames from `https://m.youtube.com`, messages round-trip in a few milliseconds, and the Media3 session now follows the page in both directions.
+
+### Setup
+
+- `WebViewCompat.AddWebMessageListener` with the object name `jhf` and the single origin rule `https://m.youtube.com`, registered before the first page load. `WEB_MESSAGE_LISTENER` is supported on WebView 155.
+- `bridge-client.js`, injected at document start before the media probe, wraps `jhf.postMessage` in the envelope `{ protocol, type, sentAtMs, payload }` from the architecture, sends `script.ready`, and executes the `player.play` and `player.pause` commands.
+- `media-probe.js` sends `player.state` (`playing`, `paused`, `ended`, with position, duration and video id) on the `/watch` page.
+- `PageBridge` accepts messages only from the main frame of the allowed origin, keeps the latest `JavaScriptReplyProxy` for commands, and forwards `player.state` to the session player.
+- The session player now sends play and pause to the page through the reply proxy instead of `EvaluateJavascript`.
+- `bridge.ping` and `bridge.echo` are spike-only message types used to measure latency; they are not part of the contract.
+
+### Results
+
+| Check | Result |
+| --- | --- |
+| Page from a disallowed origin (`https://origin-check.invalid`, loaded with `LoadDataWithBaseURL`) | `typeof jhf` is `undefined` |
+| `https://m.youtube.com` | `typeof jhf` is `object` |
+| `script.ready`, page to app | 38 to 50 ms, including page start-up |
+| Round trip, 20 sequential pings, two runs | Median 2 to 3 ms, minimum 1 ms, maximum 61 to 75 ms |
+| `player.state`, page to app | 4 to 72 ms |
+| Command from the notification to the page | 26 to 30 ms from the command to the video `pause` or `playing` event |
+| Play and pause started inside the page | The session followed within 35 ms both times, so the notification shows the right state |
+
+The page-initiated check ran through the WebView remote debugging protocol (`adb forward` to `webview_devtools_remote_<pid>`, then `Runtime.evaluate` of `video.play()` and `video.pause()`), which exercises the same code path as YouTube's own play button.
+
+### Findings
+
+- The origin allowlist is enforced by WebView itself, before any app code runs; the origin and main-frame checks in `PageBridge` are a second line of defence.
+- The bridge is far from being a bottleneck: a median round trip of 2 to 3 ms leaves almost the whole one-second budget of F-02 to the page and the player.
+- A reply proxy belongs to one page instance. A reload brings a new `script.ready` with a new proxy, so commands must always use the latest one.
+- After a pause, Media3 keeps the service in the foreground for `MediaSessionService.DefaultForegroundServiceTimeoutMs`, 600,000 ms (10 minutes). This matches the default of `PauseTimeoutPolicy`, which can be implemented with `SetForegroundServiceTimeoutMs`.
+- The Debug build exposes the WebView remote debugging socket. It is a useful test tool for the ad steps, and it must stay disabled in Release builds.
+- The notification seek bar still stays at zero and cannot be dragged, as recorded in step 0.4. The page now sends position and duration, so the facade can publish them; seeking still needs an absolute seek command.
+
 ## Implications for later steps
 
 - The notification seek bar needs the facade to publish duration and position and to handle seeking. The message contract offers only the relative `player.seekBy`; an absolute `player.seekTo` command is missing and must be added in step 0.8 or phase 3.
