@@ -90,14 +90,55 @@ On the first sign-in Google also showed `gds.google.com/web/recoveryoptions`, it
 ### Findings
 
 - Overriding `OnWindowVisibilityChanged` keeps playback running in the background. When the app goes to the background Android reports `Gone`, not `Invisible`; the override reports `Visible` instead, so Chromium never fires `visibilitychange` and the shield has nothing to do.
-- With only the shield, the page never learned it was hidden, yet the video paused within milliseconds and resumed by itself on return. The cause is not determined. The only control run without shield and native override lasted 3 s without a pause, so it neither confirms nor rules out a pause triggered by Chromium; a control run of at least 30 s is needed to settle it.
+- With only the shield, the page never learned it was hidden, yet the video paused within milliseconds and resumed by itself on return. The 3 s control run of this step was too short to compare; the longer control run recorded in step 0.4 settles it.
 - Opening the YouTube app paused playback: another media app takes the audio focus, which is expected Android behaviour. Waze in front did not pause it.
 - Background runs lasted at most 12 s. The process moved to process states 15 and 16 (last and cached activity) and was never frozen in that time. Whether Android stops playback after minutes without a foreground service was not tested; step 0.4 covers it.
 - The process restarted once during the test (new pid at 01:02:46); the cause was not recorded.
 - Implementation notes: the binding exposes Java's `ScriptHandler` as `IScriptHandler`; `Xamarin.AndroidX.WebKit` 1.15 and later pull AndroidX Lifecycle and Collection versions outside the constraints of MAUI 10 (NU1608), while 1.14.0.1 does not; page `console` messages reach logcat under the tag `chromium`.
 
+## Step 0.4: Media3 session service
+
+**Result: confirmed for the session, the foreground service, the media controls and ducking; the 30-minute screen-off run is deferred to the field test.** The owner chose to run the long screen-off test in the car (roadmap step 4.7) instead of at the desk.
+
+### Setup
+
+- `Xamarin.AndroidX.Media3.Session` 1.11.1.
+- `PlaybackService`: a `MediaSessionService` with the stable Java name `com.janlu89.jhandsfree.spike.PlaybackService`, foreground service type `mediaPlayback` and the `androidx.media3.session.MediaSessionService` intent filter.
+- `WebViewSessionPlayer`: a `SimpleBasePlayer` facade exposing play and pause only. Play and pause run `video.play()` and `video.pause()` in the page, and a partial wake lock is held while it plays.
+- Manifest permissions: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `POST_NOTIFICATIONS`, `WAKE_LOCK`.
+- The page connects a `MediaController` to the service and sends play, the same path the real UI will use.
+- Native keep-visible override on, shield off. The phone stayed connected over USB, so it was charging and Doze did not apply.
+
+### Control run for step 0.3
+
+With shield, native override and session all off, the app went to the background for 58 s with the screen on. The audio player stopped within 5 s, the video position stayed at 566.7 s for the whole time, and playback resumed by itself when the app came back. The page logged no `pause` event.
+
+Together with step 0.3, this shows that playback stops whenever Chromium considers the WebView hidden, whether or not the page is told. The missing `pause` event and the automatic resume are consistent with a suspension inside the WebView rather than a decision of the page's own code. Only the native visibility override prevents it.
+
+### Session run
+
+| Check | Result |
+| --- | --- |
+| Foreground service | Started as soon as the session played; the process moved to process state 4 (foreground service) in the background and was never frozen |
+| Playback in the background | The audio player stayed `started` for the whole 1 min 53 s in the background, including with Google Maps navigating in front |
+| Lock screen and notification controls | Four play and pause commands reached the page about 25 ms after each tap |
+| Ducking during navigation prompts | Reported by the owner: the audio lowers and comes back. The 5 s sampling did not catch a prompt, which lasts 1 to 3 s |
+| Seek bar in the notification | Does not work, as expected: the facade publishes neither duration nor position and does not offer a seek command |
+| Screen off | At most a few seconds, never caught by the 5 s sampling; the long screen-off run is deferred to the field test |
+
+### Findings
+
+- Every `Xamarin.AndroidX.Media3.Session` release from 1.9 on needs AndroidX Lifecycle 2.10 or later, while packages pulled in by MAUI 10 pin the 2.9 series (NU1608). Nine explicit references align the set; the spike project lists them in a labelled item group. In the real app they belong in `Directory.Packages.props`, where transitive pinning is already enabled.
+- AndroidX Lifecycle 2.11 requires API 23, so the minimum Android version rises from 5.0 (API 21) to 6.0 (API 23).
+- In the .NET bindings, Media3's `Player` constants live in `BasePlayer.InterfaceConsts`, and every builder result is annotated as nullable.
+- Guava's `Futures` is not exposed by the .NET binding, and AndroidX `ResolvableFuture` is marked as internal API. `CallbackToFutureAdapter` from AndroidX is the supported way to return a completed `ListenableFuture` to Media3.
+- A denied notification permission does not stop the foreground service: on Android 13 and later, media session notifications are exempt from it.
+- Pausing from the page's own player does not reach the session, which keeps reporting "playing" and keeps the foreground service. Page-to-app events (step 0.5) are needed to keep the session state true.
+- Swiping the app away from the recent apps while the session was paused ended the process.
+
 ## Implications for later steps
 
+- The notification seek bar needs the facade to publish duration and position and to handle seeking. The message contract offers only the relative `player.seekBy`; an absolute `player.seekTo` command is missing and must be added in step 0.8 or phase 3.
 - The native window visibility override, not the page script, is what keeps playback alive. Section 9 of the architecture and ADR 0007 describe the visibility shield as a page script; step 0.8 must record the change in a new ADR, and `KeepVisibleWebView` becomes part of Infrastructure.Android.
 - Sign-in works with the default user agent, so the real app keeps it unchanged. Changing the user agent is a fallback only, because it can also change the markup YouTube serves and break the selectors.
 - The phone runs Android 14, not 17. The Android 17 background audio restrictions described in ADR 0006 cannot be observed on it; confirming them needs an Android 17 emulator or device. Starting playback from the visible UI stays the rule, because Android 14 already requires a typed foreground service.
