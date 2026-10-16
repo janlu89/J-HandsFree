@@ -1,0 +1,48 @@
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [dev, master]
+
+permissions:
+  contents: read
+
+jobs:
+  source-branch:
+    name: Source branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Allow only dev to target master
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ "$BASE_REF" != "master" ]; then
+            echo "Target branch is $BASE_REF; no source restriction applies."
+            exit 0
+          fi
+          if [ "$HEAD_REF" = "dev" ] && [ "$HEAD_REPO" = "$THIS_REPO" ]; then
+            echo "dev into master: allowed."
+            exit 0
+          fi
+          echo "::error::Pull requests into master must come from the dev branch of $THIS_REPO. This one comes from $HEAD_REPO:$HEAD_REF."
+          exit 1
+
+  conventional-title:
+    name: Conventional title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that the title is a Conventional Commit
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|refactor|test|docs|build|ci|chore|style|revert)(\([a-z0-9-]+\))?!?: [a-z0-9].{0,98}$'
+          if printf '%s' "$TITLE" | grep -Eq "$pattern"; then
+            echo "Title is valid: $TITLE"
+            exit 0
+          fi
+          echo "::error::The pull request title must follow Conventional Commits, for example 'feat(domain): add playback state machine'. Got: $TITLE"
+          exit 1

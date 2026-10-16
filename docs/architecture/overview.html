@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>J-HandsFree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single technical column, condensed display headings, each diagram in its own scroll lane */
+:root {
+  --bg: #f2f4f5;
+  --surface: #ffffff;
+  --ink: #16212a;
+  --muted: #56636e;
+  --line: #c8d0d6;
+  --accent: #b45309;
+  --accent-soft: #fbeedd;
+  --link: #1d5c8c;
+  --sev-high: #b42318;
+  --sev-mid: #9a5a06;
+  --sev-low: #2f6b3e;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1519; --surface: #161e24; --ink: #e5eaed; --muted: #9ba8b2; --line: #2d3943;
+    --accent: #f0a04b; --accent-soft: #2b1e10; --link: #86b8e0;
+    --sev-high: #f27a70; --sev-mid: #f0b55c; --sev-low: #82c695;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1519; --surface: #161e24; --ink: #e5eaed; --muted: #9ba8b2; --line: #2d3943;
+  --accent: #f0a04b; --accent-soft: #2b1e10; --link: #86b8e0;
+  --sev-high: #f27a70; --sev-mid: #f0b55c; --sev-low: #82c695;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+main { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+a { color: var(--link); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+p, li { max-width: 68ch; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+header { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(44px, 8vw, 72px); line-height: 0.95; letter-spacing: 0.01em; margin: 0; text-wrap: balance; }
+.lead { font-size: 19px; margin: 0; }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 8px 0 0; }
+.facts div { background: var(--surface); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.facts dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; }
+
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; }
+nav.toc a { text-decoration: none; border-bottom: 1px solid var(--line); }
+nav.toc a:hover { border-bottom-color: var(--link); }
+
+section { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 16px; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 32px; line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 22px; margin: 0; }
+section > p { margin: 0; }
+
+.why { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; display: flex; flex-direction: column; gap: 6px; max-width: 76ch; }
+.why .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.why p { margin: 0; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+figcaption { font-size: 14px; color: var(--muted); max-width: 76ch; }
+.arch { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); font-family: var(--font-body); }
+.arch .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.arch .ext { fill: var(--bg); stroke: var(--muted); stroke-width: 1.2; }
+.arch .frame { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 6 5; }
+.arch .hot { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.8; }
+.arch .flow { stroke: currentColor; stroke-width: 1.4; fill: none; }
+.arch .head { fill: currentColor; }
+.arch .t { fill: currentColor; font-size: 13px; font-weight: 600; }
+.arch .s { fill: var(--muted); font-size: 11.5px; }
+.arch .lbl { fill: var(--muted); font-size: 11.5px; font-family: var(--font-mono); }
+.arch .tag { fill: var(--muted); font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.08em; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: none; }
+th { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: var(--bg); }
+td.mono { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+.chip { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.chip.high { color: var(--sev-high); }
+.chip.mid { color: var(--sev-mid); }
+.chip.low { color: var(--sev-low); }
+
+ol.phases { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+ol.phases li { max-width: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px 14px 64px; position: relative; display: flex; flex-direction: column; gap: 4px; }
+ol.phases li::before { content: attr(data-phase); position: absolute; left: 18px; top: 10px; font-family: var(--font-display); font-weight: 700; font-size: 30px; color: var(--muted); }
+ol.phases li.next { border-color: var(--accent); }
+ol.phases li.next::before { color: var(--accent); }
+ol.phases .ph-title { font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+ol.phases .ph-title .chip { color: var(--accent); }
+ol.phases p { margin: 0; }
+ol.phases .done { font-size: 14px; color: var(--muted); }
+
+ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.sources { font-size: 14px; }
+.sources li { max-width: none; overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Architecture plan · version 0.3 · 16 October 2026</p>
+    <h1>J-HandsFree</h1>
+    <p class="lead">Personal Android app for listening to YouTube without touching the screen. Audio keeps playing with the screen off or with another app in front, and skippable ads are skipped as soon as the player shows the Skip button.</p>
+    <dl class="facts">
+      <div><dt>Approach</dt><dd>WebView on the YouTube mobile website</dd></div>
+      <div><dt>Platform</dt><dd>.NET MAUI 10, Android only</dd></div>
+      <div><dt>Architecture</dt><dd>Clean Architecture, ports and adapters, MVVM, Mediator 3.0.2</dd></div>
+      <div><dt>Backend</dt><dd>None, everything on the phone</dd></div>
+      <div><dt>Distribution</dt><dd>Signed APK on GitHub Releases, Obtainium</dd></div>
+      <div><dt>Repository</dt><dd>Public, MIT license</dd></div>
+    </dl>
+    <nav class="toc" aria-label="Sections">
+      <a href="#overview">Overview</a>
+      <a href="#projects">Projects</a>
+      <a href="#skip">Ad skip flow</a>
+      <a href="#background">Background flow</a>
+      <a href="#states">States</a>
+      <a href="#ports">Ports and adapters</a>
+      <a href="#stack">Stack</a>
+      <a href="#delivery">Branches and delivery</a>
+      <a href="#risks">Risks</a>
+      <a href="#phases">Phases</a>
+      <a href="#decisions">Decisions</a>
+    </nav>
+  </header>
+
+  <section id="overview">
+    <h2>Component overview</h2>
+    <p>Everything runs in one Android process. The YouTube page runs inside a WebView. Injected scripts act as sensors and actuators: they observe the player and press its buttons. The C# code makes every decision.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="arch" viewBox="0 0 980 580" role="img" aria-label="The app process contains a WebView with the YouTube page and injected scripts, a bridge with a protocol translator, the use case coordinators, and a Media3 playback service hosting a player facade connected to the lock screen and Bluetooth controls.">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="head"/>
+            </marker>
+          </defs>
+
+          <rect class="ext" x="640" y="16" width="300" height="48" rx="6"/>
+          <text class="t" x="790" y="45" text-anchor="middle">youtube.com (mobile website)</text>
+
+          <rect class="ext" x="16" y="162" width="190" height="56" rx="6"/>
+          <text class="t" x="111" y="186" text-anchor="middle">Lock screen</text>
+          <text class="s" x="111" y="204" text-anchor="middle">and notification</text>
+
+          <rect class="ext" x="16" y="262" width="190" height="56" rx="6"/>
+          <text class="t" x="111" y="286" text-anchor="middle">Bluetooth controls</text>
+          <text class="s" x="111" y="304" text-anchor="middle">headphones, car</text>
+
+          <rect class="frame" x="236" y="96" width="728" height="468" rx="10"/>
+          <text class="tag" x="252" y="120">APP PROCESS · .NET MAUI ON ANDROID</text>
+
+          <rect class="box" x="600" y="140" width="340" height="180" rx="8"/>
+          <text class="t" x="616" y="163">WebView (PlayerPage)</text>
+          <rect class="box" x="616" y="176" width="308" height="50" rx="6"/>
+          <text class="t" x="770" y="206" text-anchor="middle">YouTube page</text>
+          <rect class="hot" x="616" y="244" width="308" height="60" rx="6"/>
+          <text class="t" x="770" y="269" text-anchor="middle">Injected scripts (TypeScript)</text>
+          <text class="s" x="770" y="289" text-anchor="middle">visibility · ads · idle prompt · controls</text>
+
+          <rect class="box" x="620" y="372" width="300" height="64" rx="6"/>
+          <text class="t" x="770" y="397" text-anchor="middle">WebViewPlayerBridge</text>
+          <text class="s" x="770" y="417" text-anchor="middle">+ PlayerProtocol translator (JSON)</text>
+
+          <rect class="box" x="262" y="136" width="266" height="124" rx="8"/>
+          <text class="t" x="278" y="158">PlaybackService</text>
+          <text class="s" x="278" y="175">Media3 · foreground mediaPlayback</text>
+          <rect class="box" x="278" y="188" width="234" height="56" rx="6"/>
+          <text class="t" x="395" y="211" text-anchor="middle">WebViewSessionPlayer</text>
+          <text class="s" x="395" y="229" text-anchor="middle">SimpleBasePlayer facade</text>
+
+          <rect class="box" x="270" y="356" width="250" height="100" rx="6"/>
+          <text class="tag" x="395" y="376" text-anchor="middle">USE CASES</text>
+          <text class="t" x="395" y="398" text-anchor="middle">PlaybackCoordinator</text>
+          <text class="t" x="395" y="418" text-anchor="middle">AdSkipCoordinator</text>
+          <text class="t" x="395" y="438" text-anchor="middle">IdlePromptCoordinator</text>
+
+          <rect class="box" x="270" y="484" width="250" height="56" rx="6"/>
+          <text class="t" x="395" y="507" text-anchor="middle">Domain</text>
+          <text class="s" x="395" y="525" text-anchor="middle">PlaybackSession state machine, policies</text>
+
+          <line class="flow" x1="790" y1="64" x2="790" y2="139" marker-start="url(#arr)" marker-end="url(#arr)"/>
+          <text class="lbl" x="800" y="112">HTTPS: video, ads, sign-in</text>
+
+          <line class="flow" x1="740" y1="304" x2="740" y2="371" marker-end="url(#arr)"/>
+          <text class="lbl" x="732" y="344" text-anchor="end">events</text>
+          <line class="flow" x1="820" y1="372" x2="820" y2="305" marker-end="url(#arr)"/>
+          <text class="lbl" x="828" y="344">commands</text>
+
+          <line class="flow" x1="620" y1="392" x2="521" y2="392" marker-end="url(#arr)"/>
+          <text class="lbl" x="570" y="384" text-anchor="middle">notifications</text>
+          <line class="flow" x1="520" y1="424" x2="619" y2="424" marker-end="url(#arr)"/>
+          <text class="lbl" x="570" y="442" text-anchor="middle">commands</text>
+
+          <line class="flow" x1="360" y1="356" x2="360" y2="245" marker-end="url(#arr)"/>
+          <text class="lbl" x="352" y="306" text-anchor="end">publish state</text>
+          <line class="flow" x1="430" y1="244" x2="430" y2="355" marker-end="url(#arr)"/>
+          <text class="lbl" x="438" y="306">play, pause, next</text>
+
+          <line class="flow" x1="395" y1="456" x2="395" y2="483" marker-end="url(#arr)"/>
+
+          <line class="flow" x1="207" y1="200" x2="277" y2="208" marker-start="url(#arr)" marker-end="url(#arr)"/>
+          <line class="flow" x1="207" y1="284" x2="278" y2="238" marker-start="url(#arr)" marker-end="url(#arr)"/>
+        </svg>
+      </div>
+      <figcaption>Events travel up from the scripts to C# as Mediator notifications, commands travel down from C# to the scripts through a port. Headphone, car and lock screen buttons reach the player facade and pass through the same coordinator, so one place decides what the player does. The playback service keeps the process alive with the screen off.</figcaption>
+    </figure>
+    <div class="why">
+      <span class="label">Why</span>
+      <p>The scripts are thin adapters. All the logic (when to skip, when to release background playback, how to react to buttons) lives in C# in the use case layer and is tested with xUnit without a phone or an emulator. When YouTube changes its page, one adapter changes, not the logic.</p>
+    </div>
+  </section>
+
+  <section id="projects">
+    <h2>Solution projects</h2>
+    <p>Clean Architecture adapted to mobile. Dependencies point inwards only, and Android code stays in one edge project.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Project</th><th>Target</th><th>Contains</th><th>References</th></tr></thead>
+        <tbody>
+          <tr><td><strong>JHandsFree.Domain</strong></td><td class="mono">net10.0</td><td>PlaybackSession, PlaybackState, VideoMetadata, AdBreak, SkipPolicy, PauseTimeoutPolicy, SkipRecord</td><td>Nothing</td></tr>
+          <tr><td><strong>JHandsFree.UseCases</strong></td><td class="mono">net10.0</td><td>Notifications, commands and queries; coordinators as handlers; ports; isolating notification publisher and logging behaviour</td><td>Domain, Mediator.Abstractions</td></tr>
+          <tr><td><strong>JHandsFree.Infrastructure.PlayerProtocol</strong></td><td class="mono">net10.0</td><td>Message envelope, source-generated JSON context, translation to typed events and commands</td><td>UseCases</td></tr>
+          <tr><td><strong>JHandsFree.Infrastructure.Android</strong></td><td class="mono">net10.0-android</td><td>WebViewPlayerBridge, PlayerScriptInjector, PlaybackService, WebViewSessionPlayer, settings and statistics stores</td><td>UseCases, PlayerProtocol</td></tr>
+          <tr><td><strong>JHandsFree.Mobile</strong></td><td class="mono">net10.0-android</td><td>MauiProgram, pages, view models, DI extension methods including the AddMediator call</td><td>All (composition root), Mediator.SourceGenerator</td></tr>
+          <tr><td><strong>player-scripts</strong></td><td class="mono">TypeScript</td><td>visibility-shield, ad-watcher, idle-prompt-watcher, player-controller, selectors</td><td>Nothing; bundle embedded in Infrastructure.Android</td></tr>
+          <tr><td><strong>Tests</strong></td><td class="mono">xUnit v3</td><td>Domain.Tests, UseCases.Tests, PlayerProtocol.Tests, shared contract fixtures</td><td>The project under test</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="why">
+      <span class="label">Why</span>
+      <p>Domain, UseCases and PlayerProtocol are plain <code>net10.0</code>, so the state machine, the skip policy and the message contract run in tests on any CI runner in milliseconds. The use case layer is named <code>UseCases</code> because a namespace called <code>Application</code> would collide with MAUI's <code>Application</code> class.</p>
+    </div>
+  </section>
+
+  <section id="skip">
+    <h2>Automatic ad skip flow</h2>
+    <p>The script watches the player with a MutationObserver. It blocks nothing: it waits for YouTube to show the Skip button and presses it.</p>
+    <figure>
+      <div class="scroll">
+<pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant P as YouTube page
+    participant S as ad-watcher script
+    participant B as Bridge
+    participant M as Mediator
+    participant A as AdSkipCoordinator
+    participant R as Skip records
+    P->>S: player switches to ad mode
+    S->>B: ad.started
+    B->>M: Publish(AdStarted)
+    M->>A: Handle(AdStarted)
+    Note over P,S: countdown, no Skip button
+    P->>S: Skip button appears
+    S->>B: ad.skippable
+    B->>M: Publish(AdBecameSkippable)
+    M->>A: Handle(AdBecameSkippable)
+    A->>A: evaluate SkipPolicy
+    A->>B: IPlayerCommands: SkipAd
+    B->>S: ad.skip
+    S->>P: press Skip
+    P->>S: content resumes
+    S->>B: ad.ended skipped=true
+    B->>M: Publish(AdEnded)
+    M->>A: Handle(AdEnded)
+    A->>R: save SkipRecord
+</pre>
+      </div>
+      <figcaption>Non-skippable ads cannot be skipped; the app lets them finish and only records them. If the page ignores script clicks, the script reports the button position and the bridge performs a native tap instead.</figcaption>
+    </figure>
+  </section>
+
+  <section id="background">
+    <h2>Background playback flow</h2>
+    <p>Two things keep audio alive. The Media3 playback service keeps the process running. The visibility shield makes the page believe it is always visible, so YouTube does not pause the video.</p>
+    <figure>
+      <div class="scroll">
+<pre class="mermaid">
+sequenceDiagram
+    actor U as Driver
+    participant W as WebView and scripts
+    participant C as PlaybackCoordinator
+    participant P as WebViewSessionPlayer
+    participant S as PlaybackService
+    U->>W: starts a playlist (app visible)
+    W->>C: PlayerStateChanged, via mediator
+    C->>P: publish snapshot
+    P->>S: isPlaying = true
+    S->>S: start foreground service with media notification
+    U->>W: turns the screen off, opens the navigator
+    Note over W: the page stays "visible", audio continues
+    W->>C: IdlePromptShown, via mediator
+    C->>W: idle.dismiss
+    U->>P: pause from the steering wheel
+    P->>C: HandleMediaButton(Pause), via mediator
+    C->>W: player.pause
+    Note over C: after the pause timeout, release background playback
+</pre>
+      </div>
+      <figcaption>Playback always starts from the visible UI, because from Android 17 audio from an app without a foreground service started in that moment is restricted.</figcaption>
+    </figure>
+  </section>
+
+  <section id="states">
+    <h2>Playback states</h2>
+    <p>PlaybackState lives in the Domain. Every player event is a transition, so edge cases such as an ad in the middle of a playlist or a long pause become tests instead of bugs.</p>
+    <figure>
+      <div class="scroll">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Loading : open video or playlist
+    Loading --> PlayingContent : content starts
+    Loading --> PlayingAd : pre-roll ad
+    PlayingContent --> PlayingAd : mid-roll ad
+    PlayingAd --> AdSkippable : Skip button appears
+    AdSkippable --> PlayingContent : skip pressed
+    PlayingAd --> PlayingContent : non-skippable ad ends
+    PlayingContent --> Loading : next playlist item
+    PlayingContent --> Paused : pause
+    Paused --> PlayingContent : resume
+    Paused --> Idle : pause timeout
+    PlayingContent --> Ended : playlist finished
+    Ended --> [*]
+</pre>
+      </div>
+      <figcaption>Every transition not drawn here is rejected by PlaybackSession, and every drawn edge has a unit test.</figcaption>
+    </figure>
+  </section>
+
+  <section id="ports">
+    <h2>Messages, ports and adapters</h2>
+    <p>Inbound traffic is dispatched in process by Mediator: the bridge publishes notifications, the media session and view models send commands and queries. Outbound calls go through ports that Infrastructure implements. MauiProgram wires everything together.</p>
+    <figure>
+      <div class="scroll">
+<pre class="mermaid">
+classDiagram
+    direction LR
+    class IPublisher {
+        &lt;&lt;Mediator&gt;&gt;
+        +Publish(INotification) ValueTask
+    }
+    class ISender {
+        &lt;&lt;Mediator&gt;&gt;
+        +Send(ICommand) ValueTask
+    }
+    class IPlayerCommands {
+        &lt;&lt;interface&gt;&gt;
+        +SendAsync(PlayerCommand, CancellationToken) ValueTask
+    }
+    class ISystemMediaSession {
+        &lt;&lt;interface&gt;&gt;
+        +Publish(PlaybackSnapshot)
+    }
+    class ISkipRecordRepository {
+        &lt;&lt;interface&gt;&gt;
+        +AddAsync(SkipRecord, CancellationToken) ValueTask
+    }
+    class ISettingsStore {
+        &lt;&lt;interface&gt;&gt;
+        +GetSkipPolicy() SkipPolicy
+    }
+    class PlaybackCoordinator
+    class AdSkipCoordinator
+    class IdlePromptCoordinator
+    class WebViewPlayerBridge
+    class WebViewSessionPlayer
+    class SqliteSkipRecordRepository
+    class SharedPreferencesSettingsStore
+    WebViewPlayerBridge --> IPublisher : player events
+    WebViewSessionPlayer --> ISender : media buttons
+    IPublisher ..> PlaybackCoordinator : PlayerStateChanged
+    IPublisher ..> AdSkipCoordinator : ad notifications
+    IPublisher ..> IdlePromptCoordinator : IdlePromptShown
+    ISender ..> PlaybackCoordinator : HandleMediaButton
+    PlaybackCoordinator --> IPlayerCommands : commands
+    PlaybackCoordinator --> ISystemMediaSession : syncs
+    AdSkipCoordinator --> IPlayerCommands : SkipAd
+    AdSkipCoordinator --> ISkipRecordRepository : records
+    AdSkipCoordinator --> ISettingsStore : reads policy
+    IdlePromptCoordinator --> IPlayerCommands : dismiss prompt
+    IPlayerCommands <|.. WebViewPlayerBridge
+    ISystemMediaSession <|.. WebViewSessionPlayer
+    ISkipRecordRepository <|.. SqliteSkipRecordRepository
+    ISettingsStore <|.. SharedPreferencesSettingsStore
+</pre>
+      </div>
+      <figcaption>A custom notification publisher isolates each handler, so one failure never reaches the WebView or stops the others. Time comes from the built-in TimeProvider, so timeouts are tested with a fake clock.</figcaption>
+    </figure>
+    <div class="why">
+      <span class="label">Why a mediator, and still no CQRS</span>
+      <p>One player event must reach several coordinators, every message should be logged in one place, and a failing handler must never reach the WebView. Mediator by Martin Othamar covers this with notifications, a pipeline behaviour and a custom publisher. It is MIT licensed like this repository and generates its code at compile time, so nothing breaks when Android Release builds trim unused code. CQRS stays out: there is one model and one small store, so separate read and write models would add ceremony without benefit.</p>
+    </div>
+  </section>
+
+  <section id="stack">
+    <h2>Stack, October 2026</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Choice</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Framework</td><td>.NET MAUI, Android only</td><td>10.0.x stable (LTS); .NET 11 launches at .NET Conf, 10 to 12 November</td><td>Migration is its own phase after the release</td></tr>
+          <tr><td>Android target</td><td><code>net10.0-android</code></td><td>API 36</td><td>.NET 11 brings Android API 37 and CoreCLR by default</td></tr>
+          <tr><td>Toolkit</td><td>CommunityToolkit.Maui 15+</td><td>15.0 is .NET 11 compatible</td><td>Earlier versions block the migration</td></tr>
+          <tr><td>MVVM</td><td>CommunityToolkit.Mvvm</td><td>Stable</td><td>Source-generated view models</td></tr>
+          <tr><td>In-process messaging</td><td>Mediator 3.0.2 (Martin Othamar)</td><td>Stable; 3.1 with explicit .NET 10 support is a release candidate</td><td>MIT, source-generated, verified on net10.0 in phase 1</td></tr>
+          <tr><td>Background media</td><td>AndroidX Media3 session</td><td>.NET bindings available</td><td>Session service manages the foreground service and notification</td></tr>
+          <tr><td>Script channel</td><td>AndroidX WebKit</td><td>Validate in the spike</td><td>Document-start injection and origin-restricted messaging</td></tr>
+          <tr><td>Scripts</td><td>TypeScript, esbuild, Vitest</td><td>Stable</td><td>Typed, versioned message contract</td></tr>
+          <tr><td>Tests</td><td>xUnit v3, Shouldly, NSubstitute</td><td>Stable</td><td>All permissively licensed</td></tr>
+          <tr><td>JDK</td><td>Microsoft OpenJDK 21</td><td>Recommended for .NET for Android</td><td>Same version locally and in CI</td></tr>
+          <tr><td>CI/CD</td><td>GitHub Actions, Ubuntu runners</td><td>Free for public repositories</td><td>Signed APK on every merge into master</td></tr>
+          <tr><td>Distribution</td><td>GitHub Releases + Obtainium</td><td>Stable</td><td>Updates arrive on the phone without a store</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="delivery">
+    <h2>Branches and delivery</h2>
+    <p>master is released code and accepts pull requests from dev only. dev is the integration branch. Work happens in short feature and fix branches.</p>
+    <figure>
+      <div class="scroll">
+<pre class="mermaid">
+%%{init: { 'gitGraph': { 'mainBranchName': 'master' } } }%%
+gitGraph
+    commit id: "initial"
+    branch dev
+    checkout dev
+    branch feature/state-machine
+    commit id: "work 1"
+    commit id: "work 2"
+    checkout dev
+    merge feature/state-machine id: "feat: squash"
+    branch fix/skip-delay
+    commit id: "work 3"
+    checkout dev
+    merge fix/skip-delay id: "fix: squash"
+    checkout master
+    merge dev id: "chore(release): v0.2.0" tag: "v0.2.0"
+</pre>
+      </div>
+      <figcaption>Squash into dev keeps one Conventional Commit per change. A merge commit into master keeps dev and master on a shared history, so release pull requests never show old changes again.</figcaption>
+    </figure>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Check</th><th>Runs on</th><th>Blocks</th></tr></thead>
+        <tbody>
+          <tr><td>Build and test</td><td>Pull requests into dev and master</td><td>Formatting, warnings, failing tests</td></tr>
+          <tr><td>Player scripts</td><td>Pull requests into dev and master</td><td>Lint, script tests, bundle</td></tr>
+          <tr><td>Conventional title</td><td>Every pull request</td><td>Titles that are not Conventional Commits</td></tr>
+          <tr><td>Source branch</td><td>Pull requests into master</td><td>Any source other than dev</td></tr>
+          <tr><td>Publish release</td><td>Push to master</td><td>Merges without a version bump</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2>Top risks</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Google blocks sign-in inside a WebView</td><td><span class="chip high">High</span></td><td>Spike tests two user agents. Fallback: unlisted personal playlists opened by link.</td></tr>
+          <tr><td>Android restricts audio without a valid foreground service</td><td><span class="chip high">High</span></td><td>Media3 session service of type mediaPlayback, always started from the visible UI.</td></tr>
+          <tr><td>The Activity is destroyed in the background and takes the WebView with it</td><td><span class="chip high">High</span></td><td>Measured in the spike. Fallback: the WebView is owned by a longer-lived component.</td></tr>
+          <tr><td>The Skip button ignores script clicks</td><td><span class="chip high">High</span></td><td>Native tap with a MotionEvent at the button position.</td></tr>
+          <tr><td>YouTube changes its markup</td><td><span class="chip mid">Medium</span></td><td>One selectors module, snapshot tests, health warning, remote selector data.</td></tr>
+          <tr><td>The phone maker's battery manager kills the app</td><td><span class="chip mid">Medium</span></td><td>One-time prompt to exclude the app from battery optimization.</td></tr>
+          <tr><td>Signing key lost</td><td><span class="chip low">Low</span></td><td>Offline backup; passwords in a password manager.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="phases">
+    <h2>Implementation phases</h2>
+    <p>Ordered to remove the risks that could stop the project first, then built from the inside out.</p>
+    <ol class="phases">
+      <li class="next" data-phase="0">
+        <span class="ph-title">Feasibility spike <span class="chip">next</span></span>
+        <p>Throwaway app: sign-in, 30 minutes of screen-off audio with the navigator, Skip click, message round trip, Activity survival.</p>
+        <span class="done">Done when: every assumption is confirmed or has a chosen fallback, written in a spike report.</span>
+      </li>
+      <li data-phase="1">
+        <span class="ph-title">Foundations</span>
+        <p>Repository, rulesets, solution, test projects, scripts project, DI wiring, CI, signing, first release v0.1.0.</p>
+        <span class="done">Done when: a merge into master publishes a signed APK that Obtainium installs.</span>
+      </li>
+      <li data-phase="2">
+        <span class="ph-title">Domain and use cases</span>
+        <p>Value objects, the state machine, policies, contracts, ports and the three coordinators, written test first.</p>
+        <span class="done">Done when: 90 percent coverage and no platform references in either project.</span>
+      </li>
+      <li data-phase="3">
+        <span class="ph-title">Player and bridge</span>
+        <p>PlayerPage, script injection, protocol translator, bridge, selectors with snapshot tests, sign-in or fallback.</p>
+        <span class="done">Done when: play, pause and next work from C# commands on the phone.</span>
+      </li>
+      <li data-phase="4">
+        <span class="ph-title">Background playback</span>
+        <p>Visibility shield, Media3 service and player facade, permissions, system controls, idle prompt, pause timeout.</p>
+        <span class="done">Done when: a one-hour field test in the car passes without touching the phone.</span>
+      </li>
+      <li data-phase="5">
+        <span class="ph-title">Automatic ad skip</span>
+        <p>Ad watcher, skip coordinator, settings, skip statistics, diagnostics and health warning.</p>
+        <span class="done">Done when: 20 consecutive skippable ads are skipped within one second each.</span>
+      </li>
+      <li data-phase="6">
+        <span class="ph-title">Hands-free comfort</span>
+        <p>Drive mode, sleep timer, home screen shortcuts, seek buttons, resume last session, remote selectors, optional sponsor segment skipping.</p>
+        <span class="done">Done when: each selected feature meets its acceptance criteria.</span>
+      </li>
+      <li data-phase="7">
+        <span class="ph-title">Release 1.0</span>
+        <p>Icon, about screen with attributions, screenshots, v1.0.0, install guide for friends.</p>
+        <span class="done">Done when: a friend installs it from the README without help.</span>
+      </li>
+      <li data-phase="8">
+        <span class="ph-title">.NET 11 migration</span>
+        <p>Starts after the November release on its own branch: frameworks, packages, CoreCLR on device, CI, field test.</p>
+        <span class="done">Done when: all checks are green on .NET 11 and the field test passes.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section id="decisions">
+    <h2>Decisions taken</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Topic</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr><td>Approach</td><td>WebView on the official mobile website; no stream extraction, no ad blocking</td></tr>
+          <tr><td>Architecture</td><td>Clean Architecture with ports and adapters and MVVM; no CQRS</td></tr>
+          <tr><td>Messaging</td><td>Mediator 3.0.2, source-generated, for in-process dispatch only</td></tr>
+          <tr><td>Backend</td><td>None</td></tr>
+          <tr><td>.NET</td><td>Start on .NET 10, migrate after .NET 11 is released</td></tr>
+          <tr><td>Repository</td><td>Public, MIT license</td></tr>
+          <tr><td>Branches</td><td>master from dev only; squash into dev, merge commit into master</td></tr>
+          <tr><td>Name</td><td>J-HandsFree</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="sources">
+    <h2>Sources</h2>
+    <ul class="plain sources">
+      <li><a href="https://www.youtube.com/terms" target="_blank" rel="noopener">YouTube Terms of Service</a></li>
+      <li><a href="https://github.com/dotnet/maui/releases" target="_blank" rel="noopener">dotnet/maui releases</a></li>
+      <li><a href="https://devblogs.microsoft.com/dotnet/dotnet-conf-2026/" target="_blank" rel="noopener">.NET Conf 2026 announcement</a></li>
+      <li><a href="https://infoq.com/news/2026/08/dotnet-11-preview7-maui" target="_blank" rel="noopener">InfoQ: .NET 11 Preview 7 and MAUI</a></li>
+      <li><a href="https://github.com/CommunityToolkit/Maui.Markup/pull/479" target="_blank" rel="noopener">CommunityToolkit.Maui 15.0.0 release notes</a></li>
+      <li><a href="https://www.nuget.org/packages/Xamarin.AndroidX.Media3.Session" target="_blank" rel="noopener">NuGet: Xamarin.AndroidX.Media3.Session</a></li>
+      <li><a href="https://developer.android.com/about/versions/17/changes/bg-audio" target="_blank" rel="noopener">Android 17 background audio hardening</a></li>
+      <li><a href="https://developer.android.com/develop/background-work/services/fgs/changes" target="_blank" rel="noopener">Android foreground service changes</a></li>
+      <li><a href="https://learn.microsoft.com/en-us/dotnet/android/getting-started/installation/dependencies" target="_blank" rel="noopener">.NET for Android dependencies</a></li>
+      <li><a href="https://searchfox.org/firefox-main/source/browser/extensions/webcompat/injections/js/bug2060611-youtube.com-background-video-playback.js" target="_blank" rel="noopener">Firefox webcompat fix for YouTube background playback</a></li>
+      <li><a href="https://github.com/tw93/pake/issues/1148" target="_blank" rel="noopener">Google sign-in in embedded webviews</a></li>
+      <li><a href="https://startdebugging.net/2026/05/mediatr-vs-plain-service-classes-in-2026/" target="_blank" rel="noopener">MediatR licensing change</a></li>
+      <li><a href="https://github.com/martinothamar/Mediator" target="_blank" rel="noopener">Mediator by Martin Othamar</a></li>
+      <li><a href="https://github.blog/changelog/2024-12-04-pull-request-merge-method-rule-public-preview" target="_blank" rel="noopener">GitHub merge method rule for rulesets</a></li>
+      <li><a href="https://github.com/ImranR98/Obtainium" target="_blank" rel="noopener">Obtainium</a></li>
+      <li><a href="https://wiki.sponsor.ajay.app/w/API_Docs" target="_blank" rel="noopener">SponsorBlock API</a></li>
+    </ul>
+  </section>
+</main>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: false, theme: prefersDark ? "dark" : "neutral" });
+  await mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>
