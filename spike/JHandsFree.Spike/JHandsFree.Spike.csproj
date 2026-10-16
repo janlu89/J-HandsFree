@@ -17,6 +17,11 @@
     <ApplicationVersion>1</ApplicationVersion>
   </PropertyGroup>
 
+  <!-- The test phone has a secondary user whose policy blocks USB installs; deploying to the owner only avoids INSTALL_FAILED_USER_RESTRICTED. -->
+  <PropertyGroup Label="Deployment">
+    <AndroidDeviceUserId>0</AndroidDeviceUserId>
+  </PropertyGroup>
+
   <ItemGroup>
     <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
