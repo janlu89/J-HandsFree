@@ -9,6 +9,11 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(new AppShell());
+        var window = new Window(new AppShell());
+        window.Activated += (_, _) => SpikeLog.Info("Window activated");
+        window.Deactivated += (_, _) => SpikeLog.Info("Window deactivated");
+        window.Stopped += (_, _) => SpikeLog.Info("Window stopped: app in background");
+        window.Resumed += (_, _) => SpikeLog.Info("Window resumed: app in foreground");
+        return window;
     }
 }

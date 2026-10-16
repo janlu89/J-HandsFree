@@ -7,17 +7,20 @@
     <Grid RowDefinitions="Auto,Auto,*">
 
         <Grid Grid.Row="0"
-              ColumnDefinitions="*,Auto,Auto"
-              ColumnSpacing="8"
+              ColumnDefinitions="*,Auto,Auto,Auto"
+              ColumnSpacing="6"
               Padding="8">
-            <Label x:Name="UserAgentLabel"
+            <Label x:Name="StatusLabel"
                    VerticalOptions="Center"
-                   FontSize="13" />
+                   FontSize="12" />
             <Button Grid.Column="1"
-                    Text="Next user agent"
+                    Text="Next UA"
                     Clicked="OnNextUserAgentClicked" />
             <Button Grid.Column="2"
-                    Text="Clear data"
+                    Text="Shield"
+                    Clicked="OnShieldClicked" />
+            <Button Grid.Column="3"
+                    Text="Clear"
                     Clicked="OnClearDataClicked" />
         </Grid>
 
