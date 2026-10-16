@@ -4,7 +4,7 @@ The phases are ordered to remove the risks that could stop the project first, th
 
 ## How work flows through a phase
 
-- Every step below is one branch (`feature/*`, `fix/*`, `chore/*`, `docs/*`, `test/*`) and one pull request into `dev`, squash-merged. See [GIT_WORKFLOW.md](GIT_WORKFLOW.md).
+- Every step below is one branch (`feature/*`, `fix/*`, `refactor/*`, `test/*`, `docs/*`, `chore/*` or `ci/*`) and one pull request into `dev`, squash-merged. Phase 0 is the exception, described in its section. See [GIT_WORKFLOW.md](GIT_WORKFLOW.md).
 - A step is done when its pull request is merged with all checks green.
 - A phase is done when its definition of done is met on a real phone, not only in tests.
 - When a phase is done, `dev` is merged into `master` and a release is published.
@@ -13,7 +13,7 @@ The phases are ordered to remove the risks that could stop the project first, th
 
 | Phase | Name | Outcome | Release |
 | --- | --- | --- | --- |
-| 0 | Feasibility spike | The four riskiest assumptions are confirmed or have a fallback | None (throwaway code) |
+| 0 | Feasibility spike | The riskiest assumptions are confirmed or have a fallback | None (throwaway code) |
 | 1 | Foundations | Repository, solution, quality gates and the full CI/CD pipeline work end to end | v0.1.0 |
 | 2 | Domain and use cases | Playback rules and decisions exist and are fully tested in plain C# | v0.2.0 |
 | 3 | Player and bridge | The app plays YouTube and C# controls the player through typed messages | v0.3.0 |
@@ -37,9 +37,11 @@ flowchart LR
 
 **Branch:** `spike/feasibility`. Spike code is never merged into `dev`. Only the written report is.
 
+**How the phase flows:** step 0.0 is the only direct push to `master` and `dev`, made before the rulesets exist. Steps 0.1 to 0.7 are commits on the spike branch, each reviewed before the next one starts. Step 0.8 is the only pull request of the phase.
+
 ### Steps
 
-- [ ] 0.0 Publish the documentation: create the public GitHub repository with `master` and `dev`, and apply the settings and rulesets from the one-time setup in [GIT_WORKFLOW.md](GIT_WORKFLOW.md). Status checks are added to the rulesets after the workflows have run once.
+- [x] 0.0 Publish the documentation: create the public GitHub repository with `master` and `dev`, and apply the settings and rulesets from the one-time setup in [GIT_WORKFLOW.md](GIT_WORKFLOW.md). Status checks are added to the rulesets in step 1.1.
 - [ ] 0.1 Create a throwaway MAUI app targeting `net10.0-android` only.
 - [ ] 0.2 Load `https://m.youtube.com` in a WebView. Try Google sign-in with the default user agent, then with the `; wv` marker removed from the user agent. Record the result.
 - [ ] 0.3 Inject a visibility shield at document start with AndroidX WebKit `addDocumentStartJavaScript`. Switch to another app and confirm audio continues.
@@ -68,7 +70,7 @@ flowchart LR
 - [ ] 1.4 Create `src/player-scripts` with TypeScript, esbuild, Vitest, ESLint and Prettier, with one passing test.
 - [ ] 1.5 Embed the script bundle in Infrastructure.Android through an MSBuild target that builds the scripts before the C# build.
 - [ ] 1.6 Add the DI extension methods `AddUseCases()`, `AddPlayerProtocol()`, `AddAndroidInfrastructure()`, `AddMessaging()`, `AddPresentation()` and wire them in `MauiProgram`. `AddMessaging()` calls `AddMediator` from Mediator 3.0.2 with scanning limited to UseCases. The app starts and shows an empty shell, and a Release build with trimming confirms the generated mediator works.
-- [ ] 1.7 Turn on the CI workflow and make it a required check on `dev` and `master`.
+- [ ] 1.7 Confirm that CI now formats, builds and tests the solution and the player scripts instead of skipping with a notice, and that a failing test blocks the pull request.
 - [ ] 1.8 Create the signing keystore, store it as repository secrets and back it up offline. See [CI_CD.md](CI_CD.md).
 - [ ] 1.9 Merge `dev` into `master` and confirm the release workflow publishes `v0.1.0` with a signed APK. Install it on the phone through Obtainium.
 

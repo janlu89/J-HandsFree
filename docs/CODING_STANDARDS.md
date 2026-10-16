@@ -7,7 +7,7 @@ These rules apply to every line of production and test code. They follow Robert 
 - **Readable first.** Code is read far more often than it is written. Optimise for the next reader.
 - **Single Responsibility.** A class has one reason to change. A function does one thing.
 - **SOLID** for every class that holds behaviour.
-- **Dependency rule.** Source code dependencies point inwards: Mobile → Infrastructure → UseCases → Domain. Inner layers never mention outer ones.
+- **Dependency rule.** Source code dependencies point inwards: Mobile → Infrastructure.Android → Infrastructure.PlayerProtocol → UseCases → Domain. Inner layers never mention outer ones.
 - **YAGNI and KISS.** Build what the current roadmap step needs, in the simplest form that keeps the rules above.
 - **Leave it cleaner.** Every change may include a small improvement to the code it touches, never an unrelated rewrite.
 
