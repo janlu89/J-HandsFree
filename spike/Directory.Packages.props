@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- Spike code is throwaway: it opts out of central package management so it never adds versions to the production Directory.Packages.props. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+</Project>
