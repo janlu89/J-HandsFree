@@ -1,16 +1,36 @@
-using AndroidWebView = Android.Webkit.WebView;
+using AndroidX.WebKit;
 
 namespace JHandsFree.Spike;
 
-// Spike shortcut: a static hand-off between the page and the session player. The real app routes this through the bridge and the mediator.
+// Spike shortcut: a static hand-off between the page bridge and the session player. The real app routes this through the mediator.
 public static class SpikePlayback
 {
-    public static AndroidWebView? WebView { get; set; }
+    public static JavaScriptReplyProxy? ReplyProxy { get; set; }
 
-    public static void PlayVideo() => RunOnVideo("play");
+    public static WebViewSessionPlayer? Player { get; set; }
 
-    public static void PauseVideo() => RunOnVideo("pause");
+    public static void PlayVideo() => SendCommand("player.play");
 
-    private static void RunOnVideo(string method) =>
-        WebView?.EvaluateJavascript($"document.querySelector('video')?.{method}();", null);
+    public static void PauseVideo() => SendCommand("player.pause");
+
+    public static void ReportPageState(string? state) => Player?.ReportPageState(state == "playing");
+
+    public static void Echo(JavaScriptReplyProxy replyProxy, string echoOf, long echoOfSentAtMs) =>
+        replyProxy.PostMessage($$$"""{"protocol":1,"type":"bridge.echo","sentAtMs":{{{NowMs()}}},"payload":{"echoOf":"{{{echoOf}}}","echoOfSentAtMs":{{{echoOfSentAtMs}}}}}""");
+
+    public static long ElapsedSince(long sentAtMs) => NowMs() - sentAtMs;
+
+    private static void SendCommand(string type)
+    {
+        if (ReplyProxy is null)
+        {
+            SpikeLog.Info($"No page bridge yet; {type} not sent");
+            return;
+        }
+
+        ReplyProxy.PostMessage($$$"""{"protocol":1,"type":"{{{type}}}","sentAtMs":{{{NowMs()}}},"payload":{}}""");
+        SpikeLog.Info($"Bridge sent {type}");
+    }
+
+    private static long NowMs() => TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds();
 }

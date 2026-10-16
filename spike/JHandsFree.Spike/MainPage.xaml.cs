@@ -14,7 +14,9 @@ namespace JHandsFree.Spike;
 public partial class MainPage : ContentPage
 {
     private const string StartUrl = "https://m.youtube.com";
-    private static readonly string[] _scriptOrigins = ["https://m.youtube.com"];
+    private const string OriginCheckUrl = "https://origin-check.invalid/";
+    private const string OriginCheckPage = "<script>console.info('[jhf-origin] ' + location.origin + ' typeof jhf=' + typeof jhf);</script>";
+    private static readonly string[] _scriptOrigins = [PageBridge.AllowedOrigin];
 
     private AndroidWebView? _nativeWebView;
     private string _defaultUserAgent = string.Empty;
@@ -54,12 +56,13 @@ public partial class MainPage : ContentPage
         }
 
         _nativeWebView = nativeWebView;
-        SpikePlayback.WebView = nativeWebView;
         _defaultUserAgent = AndroidWebSettings.GetDefaultUserAgent(nativeWebView.Context) ?? string.Empty;
         ConfigureWebView(nativeWebView);
         ApplyUserAgent();
+        AddPageBridge(nativeWebView);
         await PrepareDocumentStartScriptsAsync(nativeWebView);
         UpdateStatus();
+        await CheckBridgeOriginRestrictionAsync(nativeWebView);
         Browser.Source = StartUrl;
     }
 
@@ -138,6 +141,7 @@ public partial class MainPage : ContentPage
         var address = WithoutQuery(e.Url);
         AddressLabel.Text = address;
         SpikeLog.Info($"Navigated [{_userAgentMode}] {e.Result} {address}");
+        _nativeWebView?.EvaluateJavascript("location.origin + ' typeof jhf=' + typeof jhf", new BridgeAvailabilityLogger());
     }
 
     private static void ConfigureWebView(AndroidWebView nativeWebView)
@@ -160,6 +164,23 @@ public partial class MainPage : ContentPage
         SpikeLog.Info($"User agent [{_userAgentMode}] {userAgent}");
     }
 
+    private static void AddPageBridge(AndroidWebView nativeWebView)
+    {
+        var isSupported = WebViewFeature.IsFeatureSupported(WebViewFeature.WebMessageListener);
+        SpikeLog.Info($"WEB_MESSAGE_LISTENER supported: {isSupported}");
+        if (isSupported)
+        {
+            WebViewCompat.AddWebMessageListener(nativeWebView, PageBridge.ObjectName, _scriptOrigins, new PageBridge());
+        }
+    }
+
+    // A page served from an origin outside the allowed rules must not see the injected bridge object.
+    private static async Task CheckBridgeOriginRestrictionAsync(AndroidWebView nativeWebView)
+    {
+        nativeWebView.LoadDataWithBaseURL(OriginCheckUrl, OriginCheckPage, "text/html", "utf-8", null);
+        await Task.Delay(TimeSpan.FromSeconds(1));
+    }
+
     private async Task PrepareDocumentStartScriptsAsync(AndroidWebView nativeWebView)
     {
         _isDocumentStartScriptSupported = WebViewFeature.IsFeatureSupported(WebViewFeature.DocumentStartScript);
@@ -169,6 +190,8 @@ public partial class MainPage : ContentPage
             return;
         }
 
+        var bridgeSource = await ReadPackageFileAsync("bridge-client.js");
+        WebViewCompat.AddDocumentStartJavaScript(nativeWebView, bridgeSource, _scriptOrigins);
         var probeSource = await ReadPackageFileAsync("media-probe.js");
         WebViewCompat.AddDocumentStartJavaScript(nativeWebView, probeSource, _scriptOrigins);
         _shieldSource = await ReadPackageFileAsync("visibility-shield.js");
@@ -232,4 +255,9 @@ public partial class MainPage : ContentPage
     // Sign-in URLs can carry account hints and tokens in the query string; logs keep only the path.
     private static string WithoutQuery(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.GetLeftPart(UriPartial.Path) : url;
+
+    private sealed class BridgeAvailabilityLogger : Java.Lang.Object, Android.Webkit.IValueCallback
+    {
+        public void OnReceiveValue(Java.Lang.Object? value) => SpikeLog.Info($"Bridge object check: {value}");
+    }
 }

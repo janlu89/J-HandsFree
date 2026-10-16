@@ -16,7 +16,9 @@ public sealed class PlaybackService : MediaSessionService
     public override void OnCreate()
     {
         base.OnCreate();
-        _session = new MediaSession.Builder(this, new WebViewSessionPlayer(this)).Build();
+        var player = new WebViewSessionPlayer(this);
+        SpikePlayback.Player = player;
+        _session = new MediaSession.Builder(this, player).Build();
         SpikeLog.Info("Playback service created");
     }
 
@@ -27,6 +29,7 @@ public sealed class PlaybackService : MediaSessionService
         _session?.Player?.Release();
         _session?.Release();
         _session = null;
+        SpikePlayback.Player = null;
         SpikeLog.Info("Playback service destroyed");
         base.OnDestroy();
     }

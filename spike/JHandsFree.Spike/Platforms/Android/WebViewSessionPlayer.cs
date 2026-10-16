@@ -40,20 +40,32 @@ public sealed class WebViewSessionPlayer(Context context) : SimpleBasePlayer(Loo
             .Build();
     }
 
+    public void ReportPageState(bool isPlaying)
+    {
+        if (_playWhenReady == isPlaying)
+        {
+            return;
+        }
+
+        _playWhenReady = isPlaying;
+        UpdateWakeLock();
+        InvalidateState();
+        SpikeLog.Info($"Session player follows the page: playWhenReady={isPlaying}");
+    }
+
     protected override IListenableFuture HandleSetPlayWhenReady(bool playWhenReady)
     {
         _playWhenReady = playWhenReady;
         if (playWhenReady)
         {
             SpikePlayback.PlayVideo();
-            AcquireWakeLock();
         }
         else
         {
             SpikePlayback.PauseVideo();
-            ReleaseWakeLock();
         }
 
+        UpdateWakeLock();
         SpikeLog.Info($"Session player playWhenReady={playWhenReady}");
         return CompletedFuture();
     }
@@ -63,6 +75,18 @@ public sealed class WebViewSessionPlayer(Context context) : SimpleBasePlayer(Loo
         ReleaseWakeLock();
         SpikeLog.Info("Session player released");
         return CompletedFuture();
+    }
+
+    private void UpdateWakeLock()
+    {
+        if (_playWhenReady)
+        {
+            AcquireWakeLock();
+        }
+        else
+        {
+            ReleaseWakeLock();
+        }
     }
 
     private void AcquireWakeLock()
