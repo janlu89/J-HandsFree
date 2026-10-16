@@ -25,6 +25,8 @@ public partial class MainPage : ContentPage
 
     private string ShieldState => _isDocumentStartScriptSupported ? (_shieldScript is null ? "off" : "on") : "unsupported";
 
+    private string NativeState => _nativeWebView is KeepVisibleWebView view ? (view.KeepWindowVisible ? "on" : "off") : "unavailable";
+
     protected override bool OnBackButtonPressed()
     {
         if (!Browser.CanGoBack)
@@ -80,6 +82,18 @@ public partial class MainPage : ContentPage
         SpikeLog.Info($"Visibility shield {ShieldState}");
         UpdateStatus();
         Browser.Reload();
+    }
+
+    private void OnNativeClicked(object? sender, EventArgs e)
+    {
+        if (_nativeWebView is not KeepVisibleWebView view)
+        {
+            return;
+        }
+
+        view.KeepWindowVisible = !view.KeepWindowVisible;
+        SpikeLog.Info($"Native keep-visible {NativeState}");
+        UpdateStatus();
     }
 
     private void OnClearDataClicked(object? sender, EventArgs e)
@@ -140,7 +154,7 @@ public partial class MainPage : ContentPage
 
     private void UpdateStatus()
     {
-        StatusLabel.Text = $"UA: {_userAgentMode}\nShield: {ShieldState}";
+        StatusLabel.Text = $"UA: {_userAgentMode}\nShield: {ShieldState} | Native: {NativeState}";
     }
 
     private static async Task<string> ReadPackageFileAsync(string fileName)
