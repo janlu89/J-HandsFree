@@ -16,7 +16,10 @@ public static class SpikePlayback
     public static void ReportPageState(string? state) => Player?.ReportPageState(state == "playing");
 
     public static void Echo(JavaScriptReplyProxy replyProxy, string echoOf, long echoOfSentAtMs) =>
-        replyProxy.PostMessage($$$"""{"protocol":1,"type":"bridge.echo","sentAtMs":{{{NowMs()}}},"payload":{"echoOf":"{{{echoOf}}}","echoOfSentAtMs":{{{echoOfSentAtMs}}}}}""");
+        Send(replyProxy, "bridge.echo", $$"""{"echoOf":"{{echoOf}}","echoOfSentAtMs":{{echoOfSentAtMs}}}""");
+
+    public static void Send(JavaScriptReplyProxy replyProxy, string type, string payloadJson) =>
+        replyProxy.PostMessage($$$"""{"protocol":1,"type":"{{{type}}}","sentAtMs":{{{NowMs()}}},"payload":{{{payloadJson}}}}""");
 
     public static long ElapsedSince(long sentAtMs) => NowMs() - sentAtMs;
 
@@ -28,7 +31,7 @@ public static class SpikePlayback
             return;
         }
 
-        ReplyProxy.PostMessage($$$"""{"protocol":1,"type":"{{{type}}}","sentAtMs":{{{NowMs()}}},"payload":{}}""");
+        Send(ReplyProxy, type, "{}");
         SpikeLog.Info($"Bridge sent {type}");
     }
 

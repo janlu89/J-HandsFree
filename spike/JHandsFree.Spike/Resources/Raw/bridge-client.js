@@ -55,7 +55,9 @@
     handle(message);
   });
 
-  window.__jhfBridge = { send };
+  const on = (type, handler) => handlers.set(type, handler);
+
+  window.__jhfBridge = { send, on };
   send('script.ready', { bundleVersion: 'spike', selectorsVersion: 'spike' });
   console.info(`[jhf-bridge] installed on ${location.origin}`);
 })();

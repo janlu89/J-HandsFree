@@ -9,7 +9,7 @@ namespace JHandsFree.Spike;
 // so keeping playback alive in the background has to happen at the native view level.
 public sealed class KeepVisibleWebView(WebViewHandler handler, Context context) : MauiWebView(handler, context)
 {
-    public bool KeepWindowVisible { get; set; }
+    public bool KeepWindowVisible { get; set; } = true;
 
     protected override void OnWindowVisibilityChanged(ViewStates visibility)
     {

@@ -14,13 +14,14 @@ namespace JHandsFree.Spike;
 public partial class MainPage : ContentPage
 {
     private const string StartUrl = "https://m.youtube.com";
+    private const string SkipModePreference = "SkipMode";
     private const string OriginCheckUrl = "https://origin-check.invalid/";
     private const string OriginCheckPage = "<script>console.info('[jhf-origin] ' + location.origin + ' typeof jhf=' + typeof jhf);</script>";
     private static readonly string[] _scriptOrigins = [PageBridge.AllowedOrigin];
 
     private AndroidWebView? _nativeWebView;
     private string _defaultUserAgent = string.Empty;
-    private UserAgentMode _userAgentMode = UserAgentMode.Default;
+    private readonly UserAgentMode _userAgentMode = UserAgentMode.Default;
     private bool _isDocumentStartScriptSupported;
     private string _shieldSource = string.Empty;
     private IScriptHandler? _shieldScript;
@@ -29,6 +30,9 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
+        var savedMode = Preferences.Default.Get(SkipModePreference, nameof(SkipMode.Click));
+        AdSkipper.Mode = Enum.TryParse<SkipMode>(savedMode, out var mode) ? mode : SkipMode.Click;
+        AdSkipper.Changed += UpdateStatus;
     }
 
     private string ShieldState => _isDocumentStartScriptSupported ? (_shieldScript is null ? "off" : "on") : "unsupported";
@@ -66,12 +70,17 @@ public partial class MainPage : ContentPage
         Browser.Source = StartUrl;
     }
 
-    private void OnNextUserAgentClicked(object? sender, EventArgs e)
+    private void OnSkipModeClicked(object? sender, EventArgs e)
     {
-        _userAgentMode = UserAgents.After(_userAgentMode);
-        ApplyUserAgent();
+        AdSkipper.Mode = AdSkipper.Mode switch
+        {
+            SkipMode.Off => SkipMode.Click,
+            SkipMode.Click => SkipMode.Tap,
+            _ => SkipMode.Off,
+        };
+        Preferences.Default.Set(SkipModePreference, AdSkipper.Mode.ToString());
+        SpikeLog.Info($"Skip mode {AdSkipper.Mode}");
         UpdateStatus();
-        Browser.Reload();
     }
 
     private void OnShieldClicked(object? sender, EventArgs e)
@@ -194,6 +203,8 @@ public partial class MainPage : ContentPage
         WebViewCompat.AddDocumentStartJavaScript(nativeWebView, bridgeSource, _scriptOrigins);
         var probeSource = await ReadPackageFileAsync("media-probe.js");
         WebViewCompat.AddDocumentStartJavaScript(nativeWebView, probeSource, _scriptOrigins);
+        var adWatcherSource = await ReadPackageFileAsync("ad-watcher.js");
+        WebViewCompat.AddDocumentStartJavaScript(nativeWebView, adWatcherSource, _scriptOrigins);
         _shieldSource = await ReadPackageFileAsync("visibility-shield.js");
     }
 
@@ -242,7 +253,7 @@ public partial class MainPage : ContentPage
 
     private void UpdateStatus()
     {
-        StatusLabel.Text = $"UA: {_userAgentMode} | Shield: {ShieldState} | Native: {NativeState} | Session: {SessionState}";
+        StatusLabel.Text = $"Skip: {AdSkipper.Mode} | ads {AdSkipper.AdsStarted} | skip buttons {AdSkipper.SkipButtonsSeen} | gone {AdSkipper.SkipButtonsGone}\nShield: {ShieldState} | Native: {NativeState} | Session: {SessionState}";
     }
 
     private static async Task<string> ReadPackageFileAsync(string fileName)

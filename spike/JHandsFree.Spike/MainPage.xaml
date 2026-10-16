@@ -16,8 +16,8 @@
               ColumnSpacing="4"
               Padding="6">
             <Button Grid.Column="0"
-                    Text="UA"
-                    Clicked="OnNextUserAgentClicked" />
+                    Text="Skip"
+                    Clicked="OnSkipModeClicked" />
             <Button Grid.Column="1"
                     Text="Shield"
                     Clicked="OnShieldClicked" />
