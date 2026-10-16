@@ -66,8 +66,39 @@ On the first sign-in Google also showed `gds.google.com/web/recoveryoptions`, it
 - The session is stored in the WebView cookies and survives a user agent change. Survival across an app restart was not tested in this step; step 0.7 covers it.
 - Sign-in URLs can carry account hints and tokens in their query strings, so the spike logs only scheme, host and path.
 
+## Step 0.3: playback with another app in front
+
+**Result: confirmed with a native change; the page script alone is not enough.** With the screen on, playback continues while the launcher or Waze is in front, as long as the WebView keeps reporting its window as visible to Chromium. The JavaScript visibility shield alone does not prevent the pause.
+
+### Setup
+
+- `Xamarin.AndroidX.WebKit` 1.14.0.1. `DOCUMENT_START_SCRIPT` is supported on WebView 155, and both scripts are injected for `https://m.youtube.com` only.
+- `media-probe.js`, always on, logs media `play`, `playing` and `pause` events and every `visibilitychange` that reaches the page.
+- `visibility-shield.js`, switchable, makes `document.hidden` always `false` and `visibilityState` always `visible`, and swallows page-level `visibilitychange` and `blur` events.
+- `KeepVisibleWebView`, switchable, is a `MauiWebView` subclass registered through a custom `WebViewHandler`. It overrides `OnWindowVisibilityChanged` and reports `Visible` to Chromium.
+- Measurements: page console messages from logcat (tag `chromium`), the app's audio players from `dumpsys audio` every 5 s, and the process state from `dumpsys activity processes`.
+
+### Runs
+
+| Shield | Native | Background runs | What the page saw | Playback |
+| --- | --- | --- | --- | --- |
+| off | off | 1, lasting 3 s | `visibilitychange` with `document.hidden=true` | No pause within 3 s |
+| on | off | 4 | Nothing: the shield swallowed `visibilitychange` | Paused 1 to 13 ms after the app went to the background, every time; resumed by itself when the app came back |
+| on | on | 2, lasting 11 s and 12 s | Nothing: Chromium never saw the window as hidden | Continued, also with Waze in front; one pause when the YouTube app was opened |
+| off | on | 1, lasting 10 s | Nothing | Continued; the audio player stayed `started` throughout |
+
+### Findings
+
+- Overriding `OnWindowVisibilityChanged` keeps playback running in the background. When the app goes to the background Android reports `Gone`, not `Invisible`; the override reports `Visible` instead, so Chromium never fires `visibilitychange` and the shield has nothing to do.
+- With only the shield, the page never learned it was hidden, yet the video paused within milliseconds and resumed by itself on return. The cause is not determined. The only control run without shield and native override lasted 3 s without a pause, so it neither confirms nor rules out a pause triggered by Chromium; a control run of at least 30 s is needed to settle it.
+- Opening the YouTube app paused playback: another media app takes the audio focus, which is expected Android behaviour. Waze in front did not pause it.
+- Background runs lasted at most 12 s. The process moved to process states 15 and 16 (last and cached activity) and was never frozen in that time. Whether Android stops playback after minutes without a foreground service was not tested; step 0.4 covers it.
+- The process restarted once during the test (new pid at 01:02:46); the cause was not recorded.
+- Implementation notes: the binding exposes Java's `ScriptHandler` as `IScriptHandler`; `Xamarin.AndroidX.WebKit` 1.15 and later pull AndroidX Lifecycle and Collection versions outside the constraints of MAUI 10 (NU1608), while 1.14.0.1 does not; page `console` messages reach logcat under the tag `chromium`.
+
 ## Implications for later steps
 
+- The native window visibility override, not the page script, is what keeps playback alive. Section 9 of the architecture and ADR 0007 describe the visibility shield as a page script; step 0.8 must record the change in a new ADR, and `KeepVisibleWebView` becomes part of Infrastructure.Android.
 - Sign-in works with the default user agent, so the real app keeps it unchanged. Changing the user agent is a fallback only, because it can also change the markup YouTube serves and break the selectors.
 - The phone runs Android 14, not 17. The Android 17 background audio restrictions described in ADR 0006 cannot be observed on it; confirming them needs an Android 17 emulator or device. Starting playback from the visible UI stays the rule, because Android 14 already requires a typed foreground service.
 - Xiaomi's battery manager is known to stop background apps (risk R-06). Steps 0.4 and 0.7 must record the HyperOS battery and autostart settings used for each test.
