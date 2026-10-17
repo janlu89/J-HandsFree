@@ -125,7 +125,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 <body>
 <main>
   <header>
-    <p class="eyebrow">Architecture plan · version 0.3 · 16 October 2026</p>
+    <p class="eyebrow">Architecture plan · version 0.4 · 17 October 2026 · phase 0 in progress</p>
     <h1>J-HandsFree</h1>
     <p class="lead">Personal Android app for listening to YouTube without touching the screen. Audio keeps playing with the screen off or with another app in front, and skippable ads are skipped as soon as the player shows the Skip button.</p>
     <dl class="facts">
@@ -137,6 +137,8 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
       <div><dt>Repository</dt><dd>Public, MIT license</dd></div>
     </dl>
     <nav class="toc" aria-label="Sections">
+      <a href="#progress">Progress</a>
+      <a href="#findings">Spike findings</a>
       <a href="#overview">Overview</a>
       <a href="#projects">Projects</a>
       <a href="#skip">Ad skip flow</a>
@@ -150,6 +152,45 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
       <a href="#decisions">Decisions</a>
     </nav>
   </header>
+
+  <section id="progress">
+    <h2>Phase 0 progress</h2>
+    <p>The feasibility spike runs on a throwaway branch, <code>spike/feasibility</code>, on a Xiaomi Redmi Note 12 Pro+ 5G with Android 14 (HyperOS 2.0) and Android System WebView 155. Its results are recorded as they come and become the spike report in step 0.8.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>Goal</th><th>Status</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">0.0</td><td>Publish the documentation</td><td><span class="chip low">done</span></td><td>Public repository, <code>master</code> and <code>dev</code>, settings and rulesets applied</td></tr>
+          <tr><td class="mono">0.1</td><td>Throwaway MAUI app on the phone</td><td><span class="chip low">done</span></td><td>Builds without warnings and runs; installs only for the phone's owner user</td></tr>
+          <tr><td class="mono">0.2</td><td>Google sign-in in the WebView</td><td><span class="chip low">done</span></td><td>Works with the default WebView user agent; subscriptions and playlists visible</td></tr>
+          <tr><td class="mono">0.3</td><td>Audio with another app in front</td><td><span class="chip low">done</span></td><td>The page script alone is not enough; a native window visibility override keeps playback</td></tr>
+          <tr><td class="mono">0.4</td><td>Media3 session service</td><td><span class="chip low">done</span></td><td>Foreground service, lock screen controls and ducking work; the long screen-off run moves to the car field test</td></tr>
+          <tr><td class="mono">0.5</td><td>Origin-restricted message bridge</td><td><span class="chip low">done</span></td><td>Bridge object only on <code>m.youtube.com</code>; round trip median 2 to 3 ms; the session follows the page</td></tr>
+          <tr><td class="mono">0.6</td><td>Detect ads and press Skip, 20 ads</td><td><span class="chip mid">in progress</span></td><td>Script click ignored; native tap skips the first ads in 165 ms; collecting more ads in everyday use</td></tr>
+          <tr><td class="mono">0.7</td><td>Activity and WebView survival, one hour</td><td><span class="chip mid">collecting</span></td><td>Lifecycle journal on the device records process exits, Activity, WebView, service and screen events</td></tr>
+          <tr><td class="mono">0.8</td><td>Spike report and decisions</td><td><span class="chip">pending</span></td><td><code>docs/spikes/0001-feasibility.md</code>, ADR status updates and new ADRs</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="findings">
+    <h2>Spike findings so far</h2>
+    <p>These results change parts of the plan below. The diagrams still show the original design: the changes are decided and recorded as ADRs in step 0.8, and only then is the architecture updated.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Finding</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr><td>Background playback</td><td>Playback stops whenever Chromium considers the WebView hidden, even when the page is told it is visible. Reporting the window as visible from a <code>WebView</code> subclass (<code>OnWindowVisibilityChanged</code>) keeps it playing.</td><td>The visibility shield becomes a native part of Infrastructure.Android; the page script is no longer needed for it.</td></tr>
+          <tr><td>Ad skip</td><td>YouTube ignores clicks raised by scripts. A <code>MotionEvent</code> tap dispatched to the WebView at the button position is accepted and closes the ad 165 ms after the button appears.</td><td>The native tap becomes the primary skip method, using the existing <code>ad.skip</code> mode <code>locate</code> and <code>ad.skipTarget</code>.</td></tr>
+          <tr><td>Sign-in</td><td>Google sign-in works with the default user agent on WebView 155.</td><td>No user agent change; the unlisted playlist fallback is not needed for now.</td></tr>
+          <tr><td>Message bridge</td><td><code>addWebMessageListener</code> injects the bridge object only into the allowed origin and round-trips in a few milliseconds.</td><td>Confirms ADR 0007; the bridge is never the bottleneck for the one-second skip target.</td></tr>
+          <tr><td>Media3</td><td>Media3 1.11.1 needs nine explicit AndroidX references to align with MAUI 10, and AndroidX Lifecycle 2.11 raises the minimum Android version to 6.0 (API 23). After a pause, Media3 keeps the foreground service for 10 minutes.</td><td>The alignment goes into <code>Directory.Packages.props</code>; the pause timeout can use Media3's own setting.</td></tr>
+          <tr><td>Message contract</td><td>The notification seek bar needs an absolute seek command; the contract only has the relative <code>player.seekBy</code>.</td><td>Add <code>player.seekTo</code> when the seek bar is built.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <section id="overview">
     <h2>Component overview</h2>
@@ -433,8 +474,8 @@ classDiagram
           <tr><td>Toolkit</td><td>CommunityToolkit.Maui 15+</td><td>15.0 is .NET 11 compatible</td><td>Earlier versions block the migration</td></tr>
           <tr><td>MVVM</td><td>CommunityToolkit.Mvvm</td><td>Stable</td><td>Source-generated view models</td></tr>
           <tr><td>In-process messaging</td><td>Mediator 3.0.2 (Martin Othamar)</td><td>Stable; 3.1 with explicit .NET 10 support is a release candidate</td><td>MIT, source-generated, verified on net10.0 in phase 1</td></tr>
-          <tr><td>Background media</td><td>AndroidX Media3 session</td><td>.NET bindings available</td><td>Session service manages the foreground service and notification</td></tr>
-          <tr><td>Script channel</td><td>AndroidX WebKit</td><td>Validate in the spike</td><td>Document-start injection and origin-restricted messaging</td></tr>
+          <tr><td>Background media</td><td>AndroidX Media3 session</td><td>1.11.1 validated in the spike</td><td>Needs AndroidX alignment with MAUI 10 and a minimum of API 23</td></tr>
+          <tr><td>Script channel</td><td>AndroidX WebKit</td><td>1.14.0.1 validated in the spike</td><td>Document-start injection and origin-restricted messaging both supported on WebView 155</td></tr>
           <tr><td>Scripts</td><td>TypeScript, esbuild, Vitest</td><td>Stable</td><td>Typed, versioned message contract</td></tr>
           <tr><td>Tests</td><td>xUnit v3, Shouldly, NSubstitute</td><td>Stable</td><td>All permissively licensed</td></tr>
           <tr><td>JDK</td><td>Microsoft OpenJDK 21</td><td>Recommended for .NET for Android</td><td>Same version locally and in CI</td></tr>
@@ -489,15 +530,15 @@ gitGraph
     <h2>Top risks</h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+        <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th><th>Spike status</th></tr></thead>
         <tbody>
-          <tr><td>Google blocks sign-in inside a WebView</td><td><span class="chip high">High</span></td><td>Spike tests two user agents. Fallback: unlisted personal playlists opened by link.</td></tr>
-          <tr><td>Android restricts audio without a valid foreground service</td><td><span class="chip high">High</span></td><td>Media3 session service of type mediaPlayback, always started from the visible UI.</td></tr>
-          <tr><td>The Activity is destroyed in the background and takes the WebView with it</td><td><span class="chip high">High</span></td><td>Measured in the spike. Fallback: the WebView is owned by a longer-lived component.</td></tr>
-          <tr><td>The Skip button ignores script clicks</td><td><span class="chip high">High</span></td><td>Native tap with a MotionEvent at the button position.</td></tr>
-          <tr><td>YouTube changes its markup</td><td><span class="chip mid">Medium</span></td><td>One selectors module, snapshot tests, health warning, remote selector data.</td></tr>
-          <tr><td>The phone maker's battery manager kills the app</td><td><span class="chip mid">Medium</span></td><td>One-time prompt to exclude the app from battery optimization.</td></tr>
-          <tr><td>Signing key lost</td><td><span class="chip low">Low</span></td><td>Offline backup; passwords in a password manager.</td></tr>
+          <tr><td>Google blocks sign-in inside a WebView</td><td><span class="chip high">High</span></td><td>Spike tests two user agents. Fallback: unlisted personal playlists opened by link.</td><td>Did not occur: sign-in works with the default user agent</td></tr>
+          <tr><td>Android restricts audio without a valid foreground service</td><td><span class="chip high">High</span></td><td>Media3 session service of type mediaPlayback, always started from the visible UI.</td><td>Foreground service confirmed; the test phone runs Android 14, so Android 17 is not yet observed</td></tr>
+          <tr><td>The Activity is destroyed in the background and takes the WebView with it</td><td><span class="chip high">High</span></td><td>Measured in the spike. Fallback: the WebView is owned by a longer-lived component.</td><td>Being measured in step 0.7</td></tr>
+          <tr><td>The Skip button ignores script clicks</td><td><span class="chip high">High</span></td><td>Native tap with a MotionEvent at the button position.</td><td>Occurred; the native tap works</td></tr>
+          <tr><td>YouTube changes its markup</td><td><span class="chip mid">Medium</span></td><td>One selectors module, snapshot tests, health warning, remote selector data.</td><td>Player markup recorded in the spike for future snapshots</td></tr>
+          <tr><td>The phone maker's battery manager kills the app</td><td><span class="chip mid">Medium</span></td><td>One-time prompt to exclude the app from battery optimization.</td><td>Being measured in step 0.7 with the default battery settings</td></tr>
+          <tr><td>Signing key lost</td><td><span class="chip low">Low</span></td><td>Offline backup; passwords in a password manager.</td><td>Not yet relevant (phase 1)</td></tr>
         </tbody>
       </table>
     </div>
@@ -508,12 +549,12 @@ gitGraph
     <p>Ordered to remove the risks that could stop the project first, then built from the inside out.</p>
     <ol class="phases">
       <li class="next" data-phase="0">
-        <span class="ph-title">Feasibility spike <span class="chip">next</span></span>
-        <p>Throwaway app: sign-in, 30 minutes of screen-off audio with the navigator, Skip click, message round trip, Activity survival.</p>
+        <span class="ph-title">Feasibility spike <span class="chip">in progress</span></span>
+        <p>Throwaway app: sign-in, 30 minutes of screen-off audio with the navigator, Skip click, message round trip, Activity survival. Steps 0.0 to 0.5 are done; ads and background survival are being collected in everyday use. See <a href="#progress">Phase 0 progress</a>.</p>
         <span class="done">Done when: every assumption is confirmed or has a chosen fallback, written in a spike report.</span>
       </li>
       <li data-phase="1">
-        <span class="ph-title">Foundations</span>
+        <span class="ph-title">Foundations <span class="chip">next</span></span>
         <p>Repository, rulesets, solution, test projects, scripts project, DI wiring, CI, signing, first release v0.1.0.</p>
         <span class="done">Done when: a merge into master publishes a signed APK that Obtainium installs.</span>
       </li>
