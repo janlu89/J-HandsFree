@@ -44,6 +44,7 @@ public sealed class PageBridge : Java.Lang.Object, WebViewCompat.IWebMessageList
         {
             case "script.ready":
                 SpikePlayback.ReplyProxy = replyProxy;
+                SpikeJournal.Append("page.ready");
                 SpikeLog.Info($"Bridge received script.ready after {SpikePlayback.ElapsedSince(sentAtMs)} ms");
                 SpikePlayback.Echo(replyProxy, "script.ready", sentAtMs);
                 break;

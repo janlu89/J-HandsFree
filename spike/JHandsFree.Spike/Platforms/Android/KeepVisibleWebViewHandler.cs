@@ -15,6 +15,13 @@ public sealed class KeepVisibleWebViewHandler : WebViewHandler
         platformView.Settings.JavaScriptEnabled = true;
         platformView.Settings.DomStorageEnabled = true;
         platformView.Settings.SetSupportMultipleWindows(true);
+        SpikeLifecycle.OnWebViewCreated();
         return platformView;
+    }
+
+    protected override void DisconnectHandler(AndroidWebView platformView)
+    {
+        SpikeLifecycle.OnWebViewDisconnected();
+        base.DisconnectHandler(platformView);
     }
 }

@@ -22,11 +22,11 @@ public static class AdSkipper
     {
         if (type == "spike.snapshot")
         {
-            AdJournal.SaveSnapshot(payload.GetProperty("reason").GetString() ?? "unknown", payload.GetProperty("html").GetString() ?? string.Empty);
+            SpikeJournal.SaveSnapshot(payload.GetProperty("reason").GetString() ?? "unknown", payload.GetProperty("html").GetString() ?? string.Empty);
             return;
         }
 
-        AdJournal.Append(type, payload.GetRawText());
+        SpikeJournal.Append(type, payload.GetRawText());
         SpikeLog.Info($"Ad event {type} {payload.GetRawText()}");
         Apply(type, payload, view, replyProxy);
         Changed?.Invoke();
@@ -70,7 +70,7 @@ public static class AdSkipper
         }
 
         SpikePlayback.Send(replyProxy, "ad.skip", $$"""{"mode":"{{modeArgument}}"}""");
-        AdJournal.Append("app.skipRequested", $$"""{"mode":"{{modeArgument}}"}""");
+        SpikeJournal.Append("app.skipRequested", $$"""{"mode":"{{modeArgument}}"}""");
     }
 
     private static void TapSkipTarget(JsonElement payload, AndroidWebView? view)
@@ -85,7 +85,7 @@ public static class AdSkipper
         var y = (payload.GetProperty("y").GetSingle() + (payload.GetProperty("height").GetSingle() / 2)) * pixelRatio;
         var handled = NativeTap.Tap(view, x, y);
         var position = string.Create(CultureInfo.InvariantCulture, $"\"x\":{x:F0},\"y\":{y:F0}");
-        AdJournal.Append("app.nativeTap", $"{{{position},\"handled\":{(handled ? "true" : "false")}}}");
+        SpikeJournal.Append("app.nativeTap", $"{{{position},\"handled\":{(handled ? "true" : "false")}}}");
         SpikeLog.Info($"Native tap at {position}, handled {handled}");
     }
 }

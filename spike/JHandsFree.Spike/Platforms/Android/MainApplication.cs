@@ -11,5 +11,11 @@ public class MainApplication : MauiApplication
     {
     }
 
+    public override void OnCreate()
+    {
+        base.OnCreate();
+        SpikeLifecycle.OnProcessStarted(this);
+    }
+
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 }

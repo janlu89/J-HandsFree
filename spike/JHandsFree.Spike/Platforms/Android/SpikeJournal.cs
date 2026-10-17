@@ -1,16 +1,23 @@
 namespace JHandsFree.Spike;
 
-// Persists every ad event and markup snapshot on the device, so ads can be collected over days without a cable.
-public static class AdJournal
+// Persists spike events and markup snapshots on the device, so data can be collected over days without a cable.
+public static class SpikeJournal
 {
-    private static string JournalPath => Path.Combine(FileSystem.AppDataDirectory, "ad-journal.jsonl");
+    private static readonly Lock _writeLock = new();
+
+    private static string JournalPath => Path.Combine(FileSystem.AppDataDirectory, "spike-journal.jsonl");
 
     private static string SnapshotDirectory => Path.Combine(FileSystem.AppDataDirectory, "ad-snapshots");
+
+    public static void Append(string type) => Append(type, "{}");
 
     public static void Append(string type, string payloadJson)
     {
         var line = $$"""{"at":"{{Now():O}}","type":"{{type}}","payload":{{payloadJson}}}""";
-        File.AppendAllText(JournalPath, line + "\n");
+        lock (_writeLock)
+        {
+            File.AppendAllText(JournalPath, line + "\n");
+        }
     }
 
     public static void SaveSnapshot(string reason, string html)
