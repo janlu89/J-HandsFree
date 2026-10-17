@@ -172,8 +172,42 @@ The page-initiated check ran through the WebView remote debugging protocol (`adb
 - The Debug build exposes the WebView remote debugging socket. It is a useful test tool for the ad steps, and it must stay disabled in Release builds.
 - The notification seek bar still stays at zero and cannot be dragged, as recorded in step 0.4. The page now sends position and duration, so the facade can publish them; seeking still needs an absolute seek command.
 
+## Step 0.6: detecting ads and pressing Skip
+
+**Result so far: a script click is ignored, a native tap works.** Risk R-05 occurred and its planned fallback resolves it. Two real ads have been recorded; the roadmap asks for at least 20, so collection continues in everyday use with the native tap as the default.
+
+### Setup
+
+- `ad-watcher.js`, injected at document start, observes `#movie_player` with a `MutationObserver` limited to the `class`, `style`, `hidden`, `aria-hidden` and `disabled` attributes, with no polling. An ad is showing while the player has the class `ad-showing`; the Skip button is the first visible, enabled `button` or `[role="button"]` whose class contains `skip`.
+- The page only reports `ad.started`, `ad.skippable` and `ad.ended`. The app decides and sends `ad.skip`, with mode `click` (the script calls `button.click()`) or `locate` (the script answers `ad.skipTarget` with the button rectangle in CSS pixels).
+- For a native tap, the app multiplies the centre of the rectangle by `devicePixelRatio` (2.75 on this phone) and dispatches a `MotionEvent` pair, down then up 60 ms later, with source `Touchscreen`, through `WebView.DispatchTouchEvent`.
+- Every event goes to `ad-journal.jsonl` in the app's private storage, and the player markup is saved when an ad starts and when it becomes skippable. The data stays on the phone and in a temporary folder on the development PC; it is not committed.
+- The Skip button in the spike cycles through Off, Click and Tap and remembers the choice.
+
+### Player markup observed
+
+- Player: `div#movie_player.html5-video-player.ytp-mweb-player`, with the ad module `div.video-ads.ytp-ad-module` always present (player class `ad-created`).
+- Skip button: `button.ytp-ad-skip-button-modern.ytp-button.ytp-ad-skip-button-icon-delhi`, text "Skip", about 67 by 32 CSS pixels, shown about 5.8 s after the ad starts.
+- On the home page the player exists but is hidden, so markup checks must run on a `/watch` page.
+
+### Real ads
+
+| Time | Mode | Skip button shown after | Result |
+| --- | --- | --- | --- |
+| 02:00:37 | Click | 5.9 s | The app requested the skip after 3 ms and the script clicked after 12 ms, but the button stayed for another 7.3 s: the click was ignored. The ad lasted 13.1 s. |
+| 02:04:18 | Tap | 5.8 s | Skip target received after 52 ms, tap at (944, 643) physical pixels, button gone 165 ms after it appeared, ad ended. |
+
+### Findings
+
+- YouTube ignores clicks raised by scripts (`isTrusted` is `false`). A touch dispatched to the WebView arrives as a trusted event and is accepted.
+- The native tap path is fast: 165 ms from the Skip button appearing to the ad ending, well inside the one-second target of F-02.
+- The `ad.skip` mode `locate` and the `ad.skipTarget` event already in the message contract are exactly what the fallback needs.
+- The first journal version reported `skipped: true` whenever a skip was requested, even when the page ignored it. `ad.ended` now reports a skip only when the ad ends within 1 s of the request, and adds `msFromSkipRequestToEnd` and `offeredSkip`.
+- Open: the 20-ad count, ad pods ("ad 1 of 2"), and taps while the screen is off. Collection continues in everyday use, including in the car.
+
 ## Implications for later steps
 
+- The native tap is the primary skip method, not a fallback: `AdSkipCoordinator` should send `ad.skip` with mode `locate`, and the bridge adapter performs the tap. Script clicks can be dropped. ARCHITECTURE section 9 and the phase 0 report must say so.
 - The notification seek bar needs the facade to publish duration and position and to handle seeking. The message contract offers only the relative `player.seekBy`; an absolute `player.seekTo` command is missing and must be added in step 0.8 or phase 3.
 - The native window visibility override, not the page script, is what keeps playback alive. Section 9 of the architecture and ADR 0007 describe the visibility shield as a page script; step 0.8 must record the change in a new ADR, and `KeepVisibleWebView` becomes part of Infrastructure.Android.
 - Sign-in works with the default user agent, so the real app keeps it unchanged. Changing the user agent is a fallback only, because it can also change the markup YouTube serves and break the selectors.
