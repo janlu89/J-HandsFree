@@ -12,6 +12,7 @@
   };
   const watchedAttributes = ['class', 'style', 'hidden', 'aria-hidden', 'disabled'];
   const snapshotLimit = 300000;
+  const skipConfirmationWindowMs = 1000;
   const bridge = window.__jhfBridge;
 
   let player = null;
@@ -19,6 +20,7 @@
   let skippableAt = 0;
   let skipRequestedAt = 0;
   let skipButton = null;
+  let offeredSkip = false;
 
   const isAdShowing = () => player.classList.contains(selectors.adShowingClass);
 
@@ -47,21 +49,27 @@
     skippableAt = 0;
     skipRequestedAt = 0;
     skipButton = null;
+    offeredSkip = false;
     bridge.send('ad.started', { kind: 'unknown' });
     sendSnapshot('ad-started');
   };
 
+  // An ad counts as skipped only when it ends shortly after the skip request; a request the page ignored does not count.
   const onAdEnded = () => {
+    const now = performance.now();
+    const msFromSkipRequestToEnd = skipRequestedAt > 0 ? Math.round(now - skipRequestedAt) : null;
     bridge.send('ad.ended', {
-      skipped: skipRequestedAt > 0,
-      durationMs: Math.round(performance.now() - adStartedAt),
-      becameSkippable: skippableAt > 0,
+      skipped: msFromSkipRequestToEnd !== null && msFromSkipRequestToEnd < skipConfirmationWindowMs,
+      msFromSkipRequestToEnd,
+      offeredSkip,
+      durationMs: Math.round(now - adStartedAt),
     });
     adStartedAt = 0;
   };
 
   const onSkippable = (button) => {
     skipButton = button;
+    offeredSkip = true;
     skippableAt = performance.now();
     bridge.send('ad.skippable', { msSinceAdStart: Math.round(skippableAt - adStartedAt), button: describe(button) });
     sendSnapshot('ad-skippable');

@@ -30,8 +30,8 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
-        var savedMode = Preferences.Default.Get(SkipModePreference, nameof(SkipMode.Click));
-        AdSkipper.Mode = Enum.TryParse<SkipMode>(savedMode, out var mode) ? mode : SkipMode.Click;
+        var savedMode = Preferences.Default.Get(SkipModePreference, nameof(SkipMode.Tap));
+        AdSkipper.Mode = Enum.TryParse<SkipMode>(savedMode, out var mode) ? mode : SkipMode.Tap;
         AdSkipper.Changed += UpdateStatus;
     }
 

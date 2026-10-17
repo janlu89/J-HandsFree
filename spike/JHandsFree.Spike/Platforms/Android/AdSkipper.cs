@@ -10,7 +10,7 @@ public static class AdSkipper
 {
     public static event Action? Changed;
 
-    public static SkipMode Mode { get; set; } = SkipMode.Click;
+    public static SkipMode Mode { get; set; } = SkipMode.Tap;
 
     public static int AdsStarted { get; private set; }
 
