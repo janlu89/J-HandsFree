@@ -174,7 +174,7 @@ The page-initiated check ran through the WebView remote debugging protocol (`adb
 
 ## Step 0.6: detecting ads and pressing Skip
 
-**Result so far: a script click is ignored, a native tap works.** Risk R-05 occurred and its planned fallback resolves it. Two real ads have been recorded; the roadmap asks for at least 20, so collection continues in everyday use with the native tap as the default.
+**Result: confirmed with a native tap; a script click is ignored.** Risk R-05 occurred and its planned fallback resolves it. Over two days of everyday use, 20 native taps out of 20 closed the ad, with a median of 211 ms from the Skip button appearing to the ad ending.
 
 ### Setup
 
@@ -192,18 +192,91 @@ The page-initiated check ran through the WebView remote debugging protocol (`adb
 
 ### Real ads
 
+First session, 17 October:
+
 | Time | Mode | Skip button shown after | Result |
 | --- | --- | --- | --- |
 | 02:00:37 | Click | 5.9 s | The app requested the skip after 3 ms and the script clicked after 12 ms, but the button stayed for another 7.3 s: the click was ignored. The ad lasted 13.1 s. |
 | 02:04:18 | Tap | 5.8 s | Skip target received after 52 ms, tap at (944, 643) physical pixels, button gone 165 ms after it appeared, ad ended. |
 
+Everyday use, from 17 October 13:35 to 18 October 12:23, native tap only:
+
+| Measure | Result |
+| --- | --- |
+| Ad breaks | 23 |
+| Breaks with a Skip button | 19, each pressed with a native tap |
+| Confirmed skips (`ad.ended` within 1 s of the request) | 19 of 19 |
+| Breaks without a Skip button | 3, played to the end in 23 to 33 s; one more break has no recorded end |
+| Skip button shown after the break started | Median 5.8 s; 5.6 to 7.4 s when the button was on the first ad of the break, 12.7 to 26.9 s when it was on the second |
+| Skip button appearing to button gone, page clock | Median 211 ms, maximum 339 ms |
+| Skip request to ad end, app clock | Median 187 ms, maximum 324 ms |
+| Taps with the app in the background (another app in front, screen on) | 17 of 19 |
+| Taps with the screen off | None: no break started while the screen was off |
+
+Together with the first session: 20 native taps, 20 confirmed skips, no miss.
+
+Where the time goes, as medians of the 19 taps: Skip button reported to skip request 3 ms, request to button rectangle received 27 ms, rectangle to tap 9 ms, tap to button gone 167 ms.
+
+### Ad breaks with two ads
+
+Every saved Skip snapshot (21, including the first session) shows the position of the ad in its break next to the ad badge: "1 of 2" 18 times and "2 of 2" 3 times.
+
+- The player keeps the class `ad-showing` across the ads of a break, so the watcher reports a whole break as one `ad.started` and one `ad.ended`.
+- When the Skip button was on the second ad, the first ad played without a button for 6.6 to 21 s.
+- After a skip on "1 of 2", and after the ignored click on "1 of 2" in the first session, the player left ad mode and no ad started again until the next break, at least 3 minutes later. The data does not show whether YouTube dropped the second ad or never scheduled it.
+
 ### Findings
 
 - YouTube ignores clicks raised by scripts (`isTrusted` is `false`). A touch dispatched to the WebView arrives as a trusted event and is accepted.
-- The native tap path is fast: 165 ms from the Skip button appearing to the ad ending, well inside the one-second target of F-02.
+- The native tap path is fast and reliable: 20 of 20 confirmed skips, at most 354 ms from the Skip button appearing to the ad ending, well inside the one-second target of F-02.
+- The tap works while the app is in the background: 17 of the 19 everyday taps were dispatched while the Activity was stopped and another app was in front, and all of them closed the ad.
+- `ad.started` always reported `kind: unknown`. The page cannot tell at the start whether a break will be skippable; the Skip button is the only signal.
+- The Skip button kept the same classes (`button.ytp-ad-skip-button-modern`), size (67 by 32 CSS pixels) and position in all 21 cases over two days.
 - The `ad.skip` mode `locate` and the `ad.skipTarget` event already in the message contract are exactly what the fallback needs.
 - The first journal version reported `skipped: true` whenever a skip was requested, even when the page ignored it. `ad.ended` now reports a skip only when the ad ends within 1 s of the request, and adds `msFromSkipRequestToEnd` and `offeredSkip`.
-- Open: the 20-ad count, ad pods ("ad 1 of 2"), and taps while the screen is off. Collection continues in everyday use, including in the car.
+- Open: a tap with the screen off was never exercised, because no break started while the screen was off. It moves to the car field test (roadmap step 4.7), together with the long screen-off run deferred in step 0.4.
+
+## Step 0.7: one hour in the background
+
+**Result: the Activity and the WebView are never destroyed on their own; a process left in the background without the foreground service is killed whole, within 8 to 75 minutes.** Assumption 5 of the architecture holds, but the fallback it names, moving the WebView to a longer-lived component, would not help: every loss took the whole process, service included.
+
+### Setup
+
+- Spike build of commit `8a53c01`, in everyday use from 17 October 02:13 to 18 October 14:39, mostly with another app in front, including a car journey with a navigator.
+- `spike-journal.jsonl` records each process start with the exit reasons of the earlier processes (`ApplicationExitInfo`), Activity, WebView and service lifecycle, screen on and off, and a heartbeat every 5 minutes. A heartbeat gap means the process was frozen or the CPU was suspended.
+- Phone settings: "Don't keep activities" off, no battery optimisation exemption, background running allowed (app op `RUN_ANY_IN_BACKGROUND` at its default, allow). The standby bucket was 10 (active) at the start and 40 (rare) when read after the run.
+- The spike starts the Media3 session only from its Session button, which was pressed in 2 of the 9 processes. In the other 7, playback ran in the background without a foreground service.
+- The device logs (`logcat` events buffer and `dumpsys activity exit-info`) still covered the kills from 17 October 21:14 on.
+
+### Processes
+
+Two restarts at install time are left out. "Background" is the time from the last `activity.stopped` to the end of the process.
+
+| Started | Started by | Session service | Background | End | Reason reported by Android |
+| --- | --- | --- | --- | --- | --- |
+| 17 Oct 02:13 | User | No | 27 min | 02:44 | HyperOS `LockScreenClean`, 10 min after the screen turned off |
+| 13:34 | User | Yes | 30 min | 14:05 | `LockScreenClean`, 10 min after the screen turned off |
+| 16:34 | The system, for the session service only; no Activity | Service destroyed at 16:37 | Not applicable | 16:45 | `LockScreenClean`, 10.6 min after the screen turned off |
+| 18:08 | User | No | 20 min | 18:29 | `LockScreenClean`, 10 min after the screen turned off |
+| 20:54 | User | No | 8 min | 21:02 | The WebView renderer process was killed for low memory, and the app process ended with signal 9 0.4 s later |
+| 21:14 | User | Yes, in the foreground from 21:14:51 to 22:21:31 | 75 min | 22:37 | Excessive CPU: 15.9 s in 5 min against a limit of 5 %, 15.6 min after the foreground service stopped |
+| 22:59 | User, Activity restored from saved state | No | 48 min | 23:57 | Excessive CPU: 27.8 s in 5 min; the WebView renderer process 67.9 s, also killed |
+| 18 Oct 10:32 | User, Activity restored from saved state | No | 38 min | 11:38 | `LockScreenClean`, 10 min after the screen turned off |
+| 12:05 | User | No | 35 min | 12:41 | `LockScreenClean`, 10 min after the screen turned off |
+
+Every kill happened with importance 400 (cached): no foreground service was running at any kill. With a page loaded, the app process used 214 to 313 MB (PSS) and the WebView renderer process 95 to 184 MB.
+
+### Findings
+
+- Android never destroyed the Activity or the WebView while the process lived, in about five hours of background time across eight processes, the longest 75 minutes. There was no `webview.disconnected` at all. The two `activity.destroyed` events (`finishing: true`) came from `LockScreenClean` in the same second as the process kill.
+- HyperOS's `ProcessSceneCleaner` logs `LockScreenClean: kill-background` and kills cached processes 10 minutes after the screen locks. This is risk R-06. The one screen-off period longer than 10 minutes without a kill (17 October 13:39 to 13:55) was in a process that had the session service, which suggests that the foreground service protects the process; the device logs for that time had already rotated, so it is not proven.
+- Android's excessive CPU check killed the cached process twice, with a limit of 5 % of one core over 5 minutes. The first kill came 15.6 minutes after Media3 left the foreground state, which it does 10 minutes after playback stops (step 0.5): the foreground service itself ran for 67 minutes without a problem. The second kill came while playback ran without any session service; the last ad was skipped 2.5 minutes before the kill, and the owner paused playback shortly before it.
+- The CPU check applies only to background processes: the kill messages count the time from the moment the process left the foreground state (`dur=935318`, exactly the 15.6 minutes since the foreground service stopped), and the process was never killed while the foreground service ran.
+- The page keeps using CPU in the background, also after playback stops: Chromium believes the WebView is visible (step 0.3), so it keeps the page running at full rate. The battery cost must be measured in phase 4.
+- Heartbeats were regular whenever the screen was on. With the screen off and no playback they often stopped or came late (gaps of 8.9 to 13.7 minutes), which means the process was frozen or the CPU suspended.
+- Once the system started the process for the session service alone, without an Activity, and destroyed the service 2.5 minutes later. The service is exported for media controllers, so another app or the system connected to it; the journal does not show which. A session service without a page cannot play anything.
+- After the two CPU kills, the app was reopened from the recent apps and Android recreated the Activity from its saved state. The spike then loads the start page again, so the video and its position were lost.
+- Low memory ended one process: the system killed the WebView renderer process, then the app process. The app and its renderer together hold 300 to 500 MB.
 
 ## Implications for later steps
 
@@ -212,4 +285,9 @@ The page-initiated check ran through the WebView remote debugging protocol (`adb
 - The native window visibility override, not the page script, is what keeps playback alive. Section 9 of the architecture and ADR 0007 describe the visibility shield as a page script; step 0.8 must record the change in a new ADR, and `KeepVisibleWebView` becomes part of Infrastructure.Android.
 - Sign-in works with the default user agent, so the real app keeps it unchanged. Changing the user agent is a fallback only, because it can also change the markup YouTube serves and break the selectors.
 - The phone runs Android 14, not 17. The Android 17 background audio restrictions described in ADR 0006 cannot be observed on it; confirming them needs an Android 17 emulator or device. Starting playback from the visible UI stays the rule, because Android 14 already requires a typed foreground service.
-- Xiaomi's battery manager is known to stop background apps (risk R-06). Steps 0.4 and 0.7 must record the HyperOS battery and autostart settings used for each test.
+- Risk R-06 occurred: HyperOS kills cached apps 10 minutes after the screen locks. The foreground service is therefore mandatory whenever audio plays, and it must start by itself when the page reports `playing`, as the background playback flow in ARCHITECTURE section 11 already describes, never only from a button. The one-time prompt to exclude the app from battery optimisation (roadmap step 4.3) stays.
+- Assumption 5 needs no fallback: the Activity survives, and moving the WebView to a longer-lived component would not survive a process kill. What the real app needs instead is to reopen the last video after a process death (feature "resume the last session", roadmap step 6.5).
+- When the pause timeout releases background playback, the WebView should stop reporting itself as visible, so Chromium throttles the paused page. Otherwise the cached process keeps using CPU and Android kills it about 15 minutes later.
+- A media controller can start the session service while no page exists. Phase 4 must decide what the service does then, for example refuse the command or open the app.
+- `ad.started` cannot tell whether a break is skippable, and a break of two ads is one break. `AdBreak` starts as `AdKind.Unknown`, becomes skippable when the Skip button appears, and covers the whole break.
+- The car field test (roadmap step 4.7) must cover what the spike could not: the screen off for more than 10 minutes with the foreground service running, a native tap with the screen off, and the battery cost of the always-visible WebView.
