@@ -4,7 +4,7 @@ Hands-free YouTube for Android.
 
 Keep listening with the screen off or while another app, such as your navigator, is in front. Skippable ads are skipped automatically the moment the player shows the **Skip** button, so you never have to touch the screen while driving.
 
-> **Status:** planning and architecture. Development has not started yet. See the [roadmap](docs/ROADMAP.md).
+> **Status:** phase 1 (foundations) is done and v0.1.0 is released. The app starts and shows its version, but does not play anything yet. Phase 2, the domain and use cases, is next. See the [roadmap](docs/ROADMAP.md).
 
 ---
 

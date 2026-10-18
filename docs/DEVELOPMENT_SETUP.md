@@ -72,6 +72,8 @@ The last command installs and starts the app on the connected phone. If the inst
 - Unlock the phone and accept the install prompt. Some vendors, such as Xiaomi with **Install via USB**, ask for every new app installed over USB.
 - On a phone with more than one Android user, install for the owner only: add `-p:AndroidDeviceUserId=0` to the last command.
 
+If it fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, the phone has a release installed from GitHub. A local build is signed with the debug key, and Android installs an update only when it is signed with the same key as the installed app. Uninstall the app first with `adb uninstall com.janlu89.jhandsfree`, and reinstall the release from Obtainium afterwards.
+
 ## 6. Before opening a pull request
 
 Run the local checks listed in [CONTRIBUTING.md](../CONTRIBUTING.md#local-checks).

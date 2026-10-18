@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Roadmap, overview page, risk register and README record the end of phase 1 and release v0.1.0. The development setup explains why a local build cannot update a release installed from GitHub.
+
 ## [0.1.0] - 2026-10-18
 
 ### Added
