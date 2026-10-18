@@ -35,7 +35,7 @@ Jobs detect whether the solution and the scripts project exist yet. Before phase
 | .NET MAUI Android workload | Matching the SDK | `dotnet workload install maui-android`; works on Linux runners |
 | JDK | Microsoft OpenJDK 21 | Recommended for .NET for Android builds |
 | Android SDK | Preinstalled on the runner | Missing platforms are installed with the `InstallAndroidDependencies` target |
-| Node.js | 24 LTS | Builds and tests the player scripts |
+| Node.js | 24 LTS | Builds and tests the player scripts; the .NET build also runs npm to embed the script bundle |
 
 ## Quality gates
 

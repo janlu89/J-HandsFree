@@ -12,4 +12,6 @@
     <ProjectReference Include="..\JHandsFree.Infrastructure.PlayerProtocol\JHandsFree.Infrastructure.PlayerProtocol.csproj" />
   </ItemGroup>
 
+  <Import Project="PlayerScripts.targets" />
+
 </Project>
