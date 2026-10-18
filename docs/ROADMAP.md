@@ -72,12 +72,14 @@ flowchart LR
 - [x] 1.6 Add the DI extension methods `AddUseCases()`, `AddPlayerProtocol()`, `AddAndroidInfrastructure()`, `AddMessaging()`, `AddPresentation()` and wire them in `MauiProgram`. `AddMessaging()` calls `AddMediator` from Mediator 3.0.2 with the singleton lifetime. The app starts and shows an empty shell, and a Release build with trimming confirms the generated mediator works: the container validates every registration at startup.
 - [x] 1.7 Confirm that CI now formats, builds and tests the solution and the player scripts instead of skipping with a notice, and that a failing test blocks the pull request. The CI and release workflows no longer detect whether the projects exist, so a missing project fails the checks instead of passing them.
 - [x] 1.8 Create the signing keystore, store it as repository secrets and back it up offline. See [CI_CD.md](CI_CD.md).
-- [ ] 1.9 Merge `dev` into `master` and confirm the release workflow publishes `v0.1.0` with a signed APK. Install it on the phone through Obtainium.
+- [x] 1.9 Merge `dev` into `master` and confirm the release workflow publishes `v0.1.0` with a signed APK. Install it on the phone through Obtainium.
 
 ### Definition of done
 
 - A pull request into `dev` runs build, tests, script tests and formatting checks.
 - A merge into `master` produces a signed APK on GitHub Releases that installs and updates through Obtainium.
+
+Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone, and the installed APK is identical to the release asset. The update through Obtainium can only be checked with the next release, so it is part of the phase 2 definition of done.
 
 ---
 
@@ -101,6 +103,7 @@ flowchart LR
 
 - Line coverage of at least 90 percent on Domain and UseCases, enforced in CI.
 - No reference to Android, MAUI or JSON in either project.
+- Obtainium updates the installed v0.1.0 to v0.2.0 without uninstalling it.
 
 ---
 
