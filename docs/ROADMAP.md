@@ -69,7 +69,7 @@ flowchart LR
 - [x] 1.3 Create the three test projects with xUnit v3, Shouldly and NSubstitute, each with one passing smoke test.
 - [x] 1.4 Create `src/player-scripts` with TypeScript, esbuild, Vitest, ESLint and Prettier, with one passing test.
 - [x] 1.5 Embed the script bundle in Infrastructure.Android through an MSBuild target that builds the scripts before the C# build.
-- [ ] 1.6 Add the DI extension methods `AddUseCases()`, `AddPlayerProtocol()`, `AddAndroidInfrastructure()`, `AddMessaging()`, `AddPresentation()` and wire them in `MauiProgram`. `AddMessaging()` calls `AddMediator` from Mediator 3.0.2 with scanning limited to UseCases. The app starts and shows an empty shell, and a Release build with trimming confirms the generated mediator works.
+- [x] 1.6 Add the DI extension methods `AddUseCases()`, `AddPlayerProtocol()`, `AddAndroidInfrastructure()`, `AddMessaging()`, `AddPresentation()` and wire them in `MauiProgram`. `AddMessaging()` calls `AddMediator` from Mediator 3.0.2 with the singleton lifetime. The app starts and shows an empty shell, and a Release build with trimming confirms the generated mediator works: the container validates every registration at startup.
 - [ ] 1.7 Confirm that CI now formats, builds and tests the solution and the player scripts instead of skipping with a notice, and that a failing test blocks the pull request.
 - [ ] 1.8 Create the signing keystore, store it as repository secrets and back it up offline. See [CI_CD.md](CI_CD.md).
 - [ ] 1.9 Merge `dev` into `master` and confirm the release workflow publishes `v0.1.0` with a signed APK. Install it on the phone through Obtainium.
@@ -90,7 +90,7 @@ flowchart LR
 - [ ] 2.1 Value objects `VideoId`, `VideoMetadata`, `AdBreak` with validation.
 - [ ] 2.2 `PlaybackSession` with the state machine from the architecture. One test per valid transition and tests for rejected transitions.
 - [ ] 2.3 `SkipPolicy` and `PauseTimeoutPolicy`.
-- [ ] 2.4 Messages as Mediator records: notifications for player events, commands for actions, queries for reads (see the architecture, section 7). `PlayerCommand` records for the page and the ports.
+- [ ] 2.4 Messages as Mediator records: notifications for player events, commands for actions, queries for reads (see the architecture, section 7). `PlayerCommand` records for the page and the ports. `AddMessaging()` limits scanning to UseCases from this step: Mediator 3.0.2 refuses to scan an assembly whose compiled code does not use `Mediator.Abstractions` yet.
 - [ ] 2.5 `PlaybackCoordinator` as a notification and command handler, tested by calling `Handle` directly with substitutes for the ports.
 - [ ] 2.6 `AdSkipCoordinator`, tested the same way, including disabled policy, non-skippable ads, the skip delay, the locate-then-tap sequence, and a skip that counts only when the break ends within one second of the tap.
 - [ ] 2.7 `IdlePromptCoordinator`, `SkipPolicyHandlers` and `SkipTotalsHandler`.

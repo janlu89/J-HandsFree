@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Test projects for Domain, UseCases and Infrastructure.PlayerProtocol with xUnit v3, Shouldly and NSubstitute. Each starts with a test that fails when the assembly under test references something the dependency rule forbids.
 - Player scripts project, `src/player-scripts`, with TypeScript, esbuild, Vitest with jsdom, ESLint and Prettier. ESLint rejects `any`, non-null assertions, `eval` and network calls.
 - The build of Infrastructure.Android installs and bundles the player scripts with npm when they change, and embeds the bundle as the resource `JHandsFree.Infrastructure.Android.player-scripts.js`.
+- One dependency injection extension method per layer, wired in `MauiProgram` together with the source-generated Mediator 3.0.2. The container validates every registration at startup.
 
 ### Changed
 

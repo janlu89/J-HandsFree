@@ -9,6 +9,10 @@
     <PackageVersion Include="Microsoft.Maui.Controls" Version="10.0.110" />
   </ItemGroup>
 
+  <ItemGroup Label="Dependency injection">
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
+  </ItemGroup>
+
   <ItemGroup Label="Tests">
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
