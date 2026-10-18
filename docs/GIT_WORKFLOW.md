@@ -144,6 +144,8 @@ Required approvals are 0 because a solo maintainer cannot approve their own pull
 
 `Source branch` is a workflow check that fails any pull request into `master` whose head branch is not `dev` of this repository. GitHub has no native rule for the source branch, so the required check enforces it.
 
+Every required check is restricted to the GitHub Actions app as its source, so a status with the same name reported by anything else cannot satisfy it.
+
 `Require branches to be up to date` stays off for `master` on purpose. Every release adds a merge commit to `master` that `dev` never receives, because `dev` is not synchronised back ([ADR 0008](adr/0008-branching-and-merge-strategy.md)). With the option on, every later release pull request would be reported as out of date, and updating it would need a direct merge into `dev`, which `protect-dev` forbids. The option would add nothing on `master` anyway: only `dev` can target it, and CI runs on the release pull request itself.
 
 The status check names appear in the ruleset picker only after each workflow has run once, so they are added in roadmap step 1.1, after the first pull request.
