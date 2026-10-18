@@ -165,7 +165,7 @@ flowchart LR
     UseCases --> Domain
 ```
 
-Source code dependencies point inwards only. The Domain knows nothing about Android, MAUI, JSON or YouTube's markup. The rule is enforced by project references and checked in code review.
+Source code dependencies point inwards only. The Domain knows nothing about Android, MAUI, JSON or YouTube's markup. The rule is enforced by project references and checked by one test in each test project, which fails when the assembly under test references something the rule forbids.
 
 ## 6. Domain model
 

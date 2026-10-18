@@ -14,6 +14,7 @@ flowchart TB
 | Level | Project | Runs in CI | What it proves |
 | --- | --- | --- | --- |
 | Unit | `JHandsFree.Domain.Tests`, `JHandsFree.UseCases.Tests` | Yes | State machine transitions, policies, coordinator decisions |
+| Architecture | One test in each test project | Yes | The assembly under test references only what the dependency rule allows |
 | Composition | `JHandsFree.UseCases.Tests` with `Mediator.SourceGenerator` | Yes | The generated mediator routes each message to the right handler, and a failing notification handler does not stop the others |
 | Protocol | `JHandsFree.Infrastructure.PlayerProtocol.Tests` | Yes | Every message in the contract parses and serializes correctly |
 | Scripts | `src/player-scripts` with Vitest | Yes | Scripts detect ads, Skip buttons and prompts in real markup snapshots |
@@ -26,7 +27,7 @@ Android adapters are not unit tested on CI runners. Their logic is kept trivial 
 
 | Need | Tool |
 | --- | --- |
-| Test framework | xUnit v3 |
+| Test framework | xUnit v3, as `xunit.v3.mtp-off` so that `dotnet test` runs it through VSTest with the coverlet collector |
 | Assertions | Shouldly |
 | Test doubles | NSubstitute |
 | Time | `FakeTimeProvider` from `Microsoft.Extensions.TimeProvider.Testing` |

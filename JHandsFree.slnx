@@ -8,6 +8,11 @@
       <Deploy />
     </Project>
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JHandsFree.Domain.Tests/JHandsFree.Domain.Tests.csproj" />
+    <Project Path="tests/JHandsFree.UseCases.Tests/JHandsFree.UseCases.Tests.csproj" />
+    <Project Path="tests/JHandsFree.Infrastructure.PlayerProtocol.Tests/JHandsFree.Infrastructure.PlayerProtocol.Tests.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />

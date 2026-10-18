@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - ADR 0013: Skip pressed with a native tap at the position the page reports, instead of a script click.
 - ADR 0014: AndroidX versions pinned for Media3 and WebKit, and Android 6.0 as the minimum version.
 - Solution `JHandsFree.slnx` with the five source projects: Domain, UseCases, Infrastructure.PlayerProtocol, Infrastructure.Android and the MAUI app Mobile, which runs on Android 6.0 and later and shows its name and version.
+- Test projects for Domain, UseCases and Infrastructure.PlayerProtocol with xUnit v3, Shouldly and NSubstitute. Each starts with a test that fails when the assembly under test references something the dependency rule forbids.
 
 ### Changed
 
