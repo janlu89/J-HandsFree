@@ -65,7 +65,7 @@ flowchart LR
 ### Steps
 
 - [x] 1.1 Add the required status checks to both rulesets, now that every workflow has run at least once. Confirm that a pull request from a `feature/*` branch into `master` is blocked.
-- [ ] 1.2 Create `JHandsFree.slnx` and the five source projects with the references allowed by the dependency rule.
+- [x] 1.2 Create `JHandsFree.slnx` and the five source projects with the references allowed by the dependency rule.
 - [ ] 1.3 Create the three test projects with xUnit v3, Shouldly and NSubstitute, each with one passing smoke test.
 - [ ] 1.4 Create `src/player-scripts` with TypeScript, esbuild, Vitest, ESLint and Prettier, with one passing test.
 - [ ] 1.5 Embed the script bundle in Infrastructure.Android through an MSBuild target that builds the scripts before the C# build.

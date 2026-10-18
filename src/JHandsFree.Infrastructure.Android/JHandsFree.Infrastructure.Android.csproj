@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <!-- Android 6.0: the AndroidX versions that Media3 needs require it (ADR 0014). -->
+    <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JHandsFree.UseCases\JHandsFree.UseCases.csproj" />
+    <ProjectReference Include="..\JHandsFree.Infrastructure.PlayerProtocol\JHandsFree.Infrastructure.PlayerProtocol.csproj" />
+  </ItemGroup>
+
+</Project>
