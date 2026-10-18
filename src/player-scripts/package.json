@@ -1,0 +1,27 @@
+{
+  "name": "jhandsfree-player-scripts",
+  "private": true,
+  "description": "Scripts injected into the YouTube page: they observe the player and act on commands from the app.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && esbuild src/main.ts --bundle --format=iife --target=es2022 --outfile=dist/player-scripts.js",
+    "format": "prettier --write .",
+    "lint": "eslint . && prettier --check .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^30.1.3",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.5"
+  }
+}
