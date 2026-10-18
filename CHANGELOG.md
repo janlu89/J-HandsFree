@@ -26,3 +26,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Both branch rulesets require their status checks, restricted to GitHub Actions. A pull request into `master` from any branch other than `dev` is blocked.
 - Architecture, message contract, risk register, roadmap and overview page updated with the spike results. ADRs 0002, 0006 and 0007 point to the results.
 - The CI and release workflows fail when the solution, the player scripts project or the app project is missing, instead of skipping with a notice.
+- The signing instructions describe the PKCS12 keystore, which has one password for the store and the key, and the `release` environment, which GitHub creates without a branch restriction.
