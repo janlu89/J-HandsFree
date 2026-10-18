@@ -57,19 +57,19 @@ Run in PowerShell on your PC, **outside the repository folder**:
 
 ```powershell
 New-Item -ItemType Directory -Force "$HOME\keys" | Out-Null
-$keytoolArgs = @('-genkeypair', '-v', '-keystore', "$HOME\keys\j-handsfree.keystore", '-alias', 'jhandsfree', '-keyalg', 'RSA', '-keysize', '4096', '-validity', '10000')
+$keytoolArgs = @('-genkeypair', '-v', '-keystore', "$HOME\keys\j-handsfree.keystore", '-storetype', 'PKCS12', '-alias', 'jhandsfree', '-keyalg', 'RSA', '-keysize', '4096', '-validity', '10000', '-dname', 'CN=Gianluca Meola')
 keytool @keytoolArgs
 ```
 
-`keytool` is part of the JDK. Choose a strong store password and key password and save both in your password manager.
+`keytool` is part of the JDK. It asks for one password, because a PKCS12 keystore, the default since JDK 9, uses the same password for the store and the key. Save it in your password manager. The name in `-dname` goes into the signing certificate, which every APK carries publicly.
 
 **Back up the keystore file offline.** If it is lost, a new APK cannot update the installed app: every phone has to uninstall first.
 
 ### Store the secrets in GitHub
 
-The release job uses the GitHub environment `release`, restricted to the `master` branch.
+The release job uses the GitHub environment `release`, restricted to the `master` branch. GitHub creates the environment by itself the first time a workflow job names it, without any branch restriction, so check the restriction even when the environment already exists.
 
-1. **Settings → Environments → New environment** → `release`. Under **Deployment branches and tags**, allow only `master`.
+1. **Settings → Environments** → `release`, or **New environment** if it does not exist. Under **Deployment branches and tags**, choose **Selected branches and tags** and add `master` as the only rule.
 2. Add the environment secrets:
 
 ```powershell
@@ -81,14 +81,14 @@ gh secret set ANDROID_KEY_PASSWORD --env release
 Remove-Variable keystore
 ```
 
-`gh secret set` without `--body` prompts for the value, so passwords never appear in the shell history.
+`gh secret set` without `--body` prompts for the value, so passwords never appear in the shell history. Type the keystore password for both `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_PASSWORD`.
 
 | Secret | Content |
 | --- | --- |
 | `ANDROID_KEYSTORE_BASE64` | The keystore file encoded as Base64 |
 | `ANDROID_KEYSTORE_PASSWORD` | Store password |
 | `ANDROID_KEY_ALIAS` | `jhandsfree` |
-| `ANDROID_KEY_PASSWORD` | Key password |
+| `ANDROID_KEY_PASSWORD` | Key password, the same as the store password for a PKCS12 keystore |
 
 The release workflow decodes the keystore into the runner's temporary folder, passes the passwords through environment variables with the `env:` prefix so they never appear in build logs, and deletes the file at the end.
 
