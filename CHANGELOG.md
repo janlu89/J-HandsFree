@@ -18,4 +18,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Both branch rulesets require their status checks, restricted to GitHub Actions. A pull request into `master` from any branch other than `dev` is blocked.
 - Architecture, message contract, risk register, roadmap and overview page updated with the spike results. ADRs 0002, 0006 and 0007 point to the results.
