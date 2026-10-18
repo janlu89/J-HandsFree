@@ -42,6 +42,7 @@ dotnet build JHandsFree.slnx -c Release
 dotnet test JHandsFree.slnx -c Release
 npm --prefix src/player-scripts run lint
 npm --prefix src/player-scripts test
+npm --prefix src/player-scripts run build
 ```
 
 ## Definition of done for a pull request

@@ -57,6 +57,7 @@ flowchart TB
     subgraph Mobile [JHandsFree.Mobile: composition root and UI]
         Pages[Pages and ViewModels]
         Root[MauiProgram]
+        Keep[KeepVisibleWebView and PlayerPageVisibility]
     end
 
     subgraph Infra [JHandsFree.Infrastructure.Android: adapters]
@@ -87,7 +88,7 @@ flowchart TB
     Scripts[[Player scripts in the page]]
 
     Scripts -->|events| Bridge
-    Bridge -->|commands| Scripts
+    Bridge -->|commands and native taps| Scripts
     Bridge <-->|raw JSON| Translator
     Bridge -->|publish notification| Med
     Player -->|send command| Med
@@ -98,6 +99,7 @@ flowchart TB
     PC --> SM
     AC --> Rules
     PC -->|publish state| Player
+    PC -->|keep visible or allow hidden| Keep
     Service --- Player
     Root -.->|wires| Infra
     Root -.->|wires| UseCases
@@ -106,7 +108,7 @@ flowchart TB
 
 **Event flow (upwards):** the page changes, a script notices, the bridge receives the message, the protocol translator turns it into a notification, the mediator delivers it to every interested coordinator, and each coordinator updates the domain and decides.
 
-**Command flow (downwards):** a coordinator issues a command through the `IPlayerCommands` port, the bridge serializes it, a script executes it in the page.
+**Command flow (downwards):** a coordinator issues a command through the `IPlayerCommands` port, the bridge serializes it, a script executes it in the page. Pressing Skip is the exception: the script only reports where the button is, and the bridge taps it natively ([ADR 0013](../adr/0013-native-tap-to-press-skip.md)).
 
 Media buttons from the lock screen, the notification and Bluetooth reach `WebViewSessionPlayer`, which sends a command through the mediator to `PlaybackCoordinator`. There is one place that decides what the player does.
 
@@ -140,8 +142,8 @@ J-HandsFree/
 | `JHandsFree.UseCases` | `net10.0` | Notifications, commands and queries; coordinators and handlers; ports; `IsolatingNotificationPublisher` and `LoggingBehavior`; DI extension `AddUseCases()` | Domain, `Mediator.Abstractions` |
 | `JHandsFree.Infrastructure.PlayerProtocol` | `net10.0` | Message envelope DTOs, `System.Text.Json` source-generated context, translation between JSON and use case events and commands; DI extension `AddPlayerProtocol()` | UseCases |
 | `JHandsFree.Infrastructure.Android` | `net10.0-android` | Adapters for WebView, Media3, storage; embedded script bundle; DI extension `AddAndroidInfrastructure()` | UseCases, PlayerProtocol |
-| `JHandsFree.Mobile` | `net10.0-android` | `MauiProgram`, pages, view models, Android manifest; DI extensions `AddMessaging()` (the `AddMediator` call) and `AddPresentation()` | All of the above, `Mediator.SourceGenerator` |
-| `player-scripts` | TypeScript | Visibility shield, ad watcher, idle prompt watcher, player controller | Nothing; its bundle is embedded in Infrastructure.Android |
+| `JHandsFree.Mobile` | `net10.0-android` | `MauiProgram`, pages, view models, Android manifest; `KeepVisibleWebView`, its WebView handler and the `PlayerPageVisibility` adapter; DI extensions `AddMessaging()` (the `AddMediator` call) and `AddPresentation()` | All of the above, `Mediator.SourceGenerator` |
+| `player-scripts` | TypeScript | Ad watcher, idle prompt watcher, player controller | Nothing; its bundle is embedded in Infrastructure.Android |
 
 The protocol translation is a separate plain `net10.0` project so it can be unit tested on any CI runner. Code that targets `net10.0-android` cannot run on a Linux test host.
 
@@ -163,7 +165,7 @@ flowchart LR
     UseCases --> Domain
 ```
 
-Source code dependencies point inwards only. The Domain knows nothing about Android, MAUI, JSON or YouTube's markup. The rule is enforced by project references and checked in code review.
+Source code dependencies point inwards only. The Domain knows nothing about Android, MAUI, JSON or YouTube's markup. The rule is enforced by project references and checked by one test in each test project, which fails when the assembly under test references something the rule forbids.
 
 ## 6. Domain model
 
@@ -173,7 +175,7 @@ Source code dependencies point inwards only. The Domain knows nothing about Andr
 | `PlaybackState` | Enum | `Idle`, `Loading`, `PlayingContent`, `PlayingAd`, `AdSkippable`, `Paused`, `Ended` |
 | `VideoMetadata` | Value object | `VideoId`, title, channel, duration |
 | `VideoId` | Value object | Validated YouTube video identifier |
-| `AdBreak` | Value object | Ad kind, start time, whether it became skippable |
+| `AdBreak` | Value object | One ad break, whatever the number of ads in it: kind, start time, whether it became skippable. The kind is `Unknown` until the Skip button appears or the break ends |
 | `AdKind` | Enum | `Skippable`, `NonSkippable`, `Unknown` |
 | `SkipPolicy` | Policy | Whether auto skip is enabled and the delay before pressing Skip |
 | `PauseTimeoutPolicy` | Policy | How long a pause may last before background playback is released (default 10 minutes) |
@@ -217,8 +219,8 @@ Messages are immutable records in UseCases. They are dispatched in process by Me
 
 | Handler | Handles | Decides | Uses ports |
 | --- | --- | --- | --- |
-| `PlaybackCoordinator` | `PlayerStateChanged`, `HandleMediaButton`, `OpenPlaylist` | Updates the session; keeps the system media session in sync; forwards play, pause, next | `IPlayerCommands`, `ISystemMediaSession`, `TimeProvider` |
-| `AdSkipCoordinator` | `AdStarted`, `AdBecameSkippable`, `SkipTargetLocated`, `AdEnded` | Applies `SkipPolicy`; sends `SkipAd`; records a `SkipRecord` | `IPlayerCommands`, `ISkipRecordRepository`, `ISettingsStore`, `TimeProvider` |
+| `PlaybackCoordinator` | `PlayerStateChanged`, `HandleMediaButton`, `OpenPlaylist` | Updates the session; keeps the system media session in sync; forwards play, pause, next; keeps the page visible during background playback and allows it to be hidden after the pause timeout | `IPlayerCommands`, `ISystemMediaSession`, `IPlayerVisibility`, `TimeProvider` |
+| `AdSkipCoordinator` | `AdStarted`, `AdBecameSkippable`, `SkipTargetLocated`, `AdEnded` | Applies `SkipPolicy`; sends `LocateSkipButton`, then `TapSkipButton` with the reported rectangle; records a `SkipRecord` when the break ends within one second of the tap | `IPlayerCommands`, `ISkipRecordRepository`, `ISettingsStore`, `TimeProvider` |
 | `IdlePromptCoordinator` | `IdlePromptShown` | Dismisses the "Continue watching?" prompt | `IPlayerCommands` |
 | `SkipPolicyHandlers` | `GetSkipPolicy`, `UpdateSkipPolicy` | Reads and saves the user's skip settings | `ISettingsStore` |
 | `SkipTotalsHandler` | `GetSkipTotals` | Returns the statistics for the stats screen | `ISkipRecordRepository` |
@@ -257,16 +259,23 @@ classDiagram
         +GetSkipPolicy() SkipPolicy
         +SaveSkipPolicy(SkipPolicy policy) void
     }
+    class IPlayerVisibility {
+        <<interface>>
+        +KeepVisible() void
+        +AllowHidden() void
+    }
 
     class WebViewPlayerBridge
     class WebViewSessionPlayer
     class SqliteSkipRecordRepository
     class SharedPreferencesSettingsStore
+    class PlayerPageVisibility
 
     IPlayerCommands <|.. WebViewPlayerBridge
     ISystemMediaSession <|.. WebViewSessionPlayer
     ISkipRecordRepository <|.. SqliteSkipRecordRepository
     ISettingsStore <|.. SharedPreferencesSettingsStore
+    IPlayerVisibility <|.. PlayerPageVisibility
 ```
 
 Inbound traffic uses the mediator instead of ports: the bridge publishes notifications through `IPublisher`, and `WebViewSessionPlayer` sends `HandleMediaButton` through `ISender`.
@@ -277,14 +286,14 @@ Time is read through the built-in `TimeProvider` abstraction instead of a custom
 
 | Adapter | Built on | Notes |
 | --- | --- | --- |
-| `WebViewPlayerBridge` | AndroidX WebKit `addWebMessageListener` | Receives messages only from allowed origins; replies through the reply proxy. Delegates parsing and serialization to the PlayerProtocol translator, then publishes the resulting notification through Mediator's `IPublisher`. Implements `IPlayerCommands`. |
-| `PlayerScriptInjector` | AndroidX WebKit `addDocumentStartJavaScript` | Injects the bundle before any page script runs, so the visibility shield is in place first. Feature support is checked at runtime. |
+| `WebViewPlayerBridge` | AndroidX WebKit `addWebMessageListener` | Receives messages only from allowed origins; replies through the reply proxy. Delegates parsing and serialization to the PlayerProtocol translator, then publishes the resulting notification through Mediator's `IPublisher`. Implements `IPlayerCommands`. Executes `TapSkipButton` natively: converts the rectangle to physical pixels and dispatches a `MotionEvent` pair to the WebView on the UI thread. |
+| `PlayerScriptInjector` | AndroidX WebKit `addDocumentStartJavaScript` | Injects the bundle before any page script runs, so the observers are in place before the player starts. Feature support is checked at runtime. |
 | `PlaybackService` | Media3 `MediaSessionService` | Owns the media session, the notification and the foreground service of type `mediaPlayback`. |
 | `WebViewSessionPlayer` | Media3 `SimpleBasePlayer` | A player facade whose state comes from `PlaybackSession`. It does not decode media; it mirrors the WebView and sends `HandleMediaButton` commands through Mediator's `ISender`. Implements `ISystemMediaSession`. |
 | `SharedPreferencesSettingsStore` | Android `SharedPreferences` | Small key-value settings, without a MAUI dependency in Infrastructure. |
 | `SqliteSkipRecordRepository` | SQLite | Skip statistics. The library is chosen in phase 5. |
 
-The WebView itself is created by the Mobile project (it is a UI element). When the MAUI handler connects, the native `Android.Webkit.WebView` is handed to the bridge and the injector. Infrastructure never references MAUI pages.
+The WebView itself is created by the Mobile project (it is a UI element): a custom WebView handler creates `KeepVisibleWebView`, a subclass of MAUI's `MauiWebView` that reports its window as visible to Chromium while background playback is active ([ADR 0012](../adr/0012-native-window-visibility-for-background-playback.md)). `PlayerPageVisibility`, also in Mobile, implements `IPlayerVisibility` by switching that override; it is the one adapter outside Infrastructure.Android, because the view it controls is a MAUI type. When the MAUI handler connects, the native `Android.Webkit.WebView` is handed to the bridge and the injector. Infrastructure never references MAUI.
 
 ## 9. Player scripts
 
@@ -292,12 +301,13 @@ The scripts run inside the YouTube page. They are deliberately thin: they observ
 
 | Module | Job |
 | --- | --- |
-| `visibility-shield` | Makes the page always report itself as visible, so YouTube does not pause when the screen turns off or another app is in front. |
-| `ad-watcher` | Observes the player container with a `MutationObserver`; reports `ad.started`, `ad.skippable`, `ad.ended`; presses Skip when commanded. If the page ignores script clicks, it reports the button's position instead and the bridge performs a native tap (see section 13). |
+| `ad-watcher` | Observes the player container with a `MutationObserver`; reports `ad.started`, `ad.skippable`, `ad.ended`; when asked, reports the Skip button's rectangle. It never clicks: YouTube ignores script clicks, so the bridge taps natively ([ADR 0013](../adr/0013-native-tap-to-press-skip.md)). |
 | `idle-prompt-watcher` | Reports the "Continue watching?" dialog; confirms it when commanded. |
 | `player-controller` | Reports player state and metadata; executes play, pause, next, previous, seek and rate commands. |
 | `bridge-client` | Wraps `postMessage`, adds the envelope and protocol version, handles replies. |
 | `selectors` | All CSS selectors in one module, so a YouTube markup change is a one-file fix. |
+
+Background playback does not depend on a script. Chromium suspends the page's media when the WebView's window is not visible, whatever the page is told, so `KeepVisibleWebView` keeps reporting the window as visible ([ADR 0012](../adr/0012-native-window-visibility-for-background-playback.md)).
 
 ## 10. Message contract
 
@@ -318,10 +328,10 @@ Every message in both directions uses one envelope. The protocol version lets th
 | --- | --- |
 | `script.ready` | `bundleVersion`, `selectorsVersion` |
 | `player.state` | `state` (`playing`, `paused`, `buffering`, `ended`), `videoId`, `title`, `channel`, `positionSeconds`, `durationSeconds` |
-| `ad.started` | `kind` (`skippable`, `nonSkippable`, `unknown`) |
+| `ad.started` | none |
 | `ad.skippable` | none |
-| `ad.ended` | `skipped` (boolean) |
-| `ad.skipTarget` | `x`, `y`, `width`, `height` of the Skip button in CSS pixels, sent after `ad.skip` with mode `locate` |
+| `ad.ended` | none |
+| `ad.skipTarget` | `x`, `y`, `width`, `height` of the Skip button in CSS pixels and the page's `devicePixelRatio`, sent after `ad.locateSkip` |
 | `idle.prompt.shown` | none |
 | `script.error` | `code`, `message` |
 
@@ -333,7 +343,7 @@ Every message in both directions uses one envelope. The protocol version lets th
 | `player.next` / `player.previous` | none |
 | `player.seekBy` | `seconds` (negative to go back) |
 | `player.setRate` | `rate` |
-| `ad.skip` | `mode`: `click` (script click) or `locate` (report the button position for a native tap) |
+| `ad.locateSkip` | none; the page answers with `ad.skipTarget` |
 | `idle.dismiss` | none |
 
 Unknown types are logged and ignored. A malformed message never crashes the app.
@@ -361,17 +371,22 @@ sequenceDiagram
     Bridge->>Med: Publish(AdBecameSkippable)
     Med->>Skip: Handle(AdBecameSkippable)
     Skip->>Skip: evaluate SkipPolicy
-    Skip->>Bridge: IPlayerCommands.SendAsync(SkipAd)
-    Bridge->>Watcher: ad.skip
-    Watcher->>Page: click Skip
+    Skip->>Bridge: IPlayerCommands.SendAsync(LocateSkipButton)
+    Bridge->>Watcher: ad.locateSkip
+    Watcher->>Bridge: ad.skipTarget (button rectangle)
+    Bridge->>Med: Publish(SkipTargetLocated)
+    Med->>Skip: Handle(SkipTargetLocated)
+    Skip->>Bridge: IPlayerCommands.SendAsync(TapSkipButton)
+    Bridge->>Page: native MotionEvent tap on Skip
     Page->>Watcher: content resumes
-    Watcher->>Bridge: ad.ended skipped=true
+    Watcher->>Bridge: ad.ended
     Bridge->>Med: Publish(AdEnded)
     Med->>Skip: Handle(AdEnded)
+    Skip->>Skip: ended within 1 s of the tap, so skipped
     Skip->>Repo: AddAsync(SkipRecord)
 ```
 
-Non-skippable ads are never skipped; the coordinator only records them. If a handler throws, `IsolatingNotificationPublisher` logs it and the bridge carries on.
+Non-skippable ads are never skipped; the coordinator only records them. A break of two ads is one `AdBreak`, and the Skip button can appear on either ad. If a handler throws, `IsolatingNotificationPublisher` logs it and the bridge carries on.
 
 ### Background playback
 
@@ -383,22 +398,27 @@ sequenceDiagram
     participant IC as IdlePromptCoordinator
     participant Player as WebViewSessionPlayer
     participant Service as PlaybackService
+    participant View as KeepVisibleWebView
     User->>Page: starts a playlist (app in foreground)
     Page->>PC: PlayerStateChanged(playing), via bridge and mediator
     PC->>Player: Publish(snapshot)
     Player->>Service: isPlaying = true
     Service->>Service: start foreground service with media notification
+    PC->>View: IPlayerVisibility.KeepVisible()
     User->>User: turns the screen off, opens the navigator
-    Note over Page: visibility shield keeps the page "visible", audio continues
+    Note over View,Page: Chromium is told the window is visible, audio continues
     Page->>IC: IdlePromptShown, via bridge and mediator
     IC->>Page: idle.dismiss
     User->>Player: pause from the steering wheel
     Player->>PC: HandleMediaButton(Pause), via mediator
     PC->>Page: player.pause
     Note over PC: after PauseTimeoutPolicy, release background playback
+    PC->>View: IPlayerVisibility.AllowHidden()
 ```
 
 The foreground service must be started while the app is still visible. Android 17 restricts audio from apps without a foreground service started with while-in-use capability, so playback always starts from the UI.
+
+The foreground service is also what keeps the process alive. Without it the process is cached, and the phone kills it within minutes: the spike saw HyperOS kill cached apps 10 minutes after the screen locks, and Android kill a cached process that used more than 5 % of a core ([spike report](../spikes/0001-feasibility.md#survival-in-the-background-step-07)). Allowing the page to be hidden after the pause timeout lets Chromium throttle it once background playback is released.
 
 ### Startup and script injection
 
@@ -432,17 +452,17 @@ sequenceDiagram
 | Serialization | `System.Text.Json` with source generation in the PlayerProtocol project, so trimming in Release builds is safe. |
 | Time | `TimeProvider` everywhere; never `DateTime.Now`. |
 | Security | Script injection and messaging are restricted to allowed YouTube origins. No `eval`, no remote scripts. |
-| Performance | Observers watch the player container only. No timers that poll the page. |
+| Performance | Observers watch the player container only. No timers that poll the page. After the pause timeout the page may be hidden again, so Chromium throttles it. |
 
 ## 13. Validated by the feasibility spike
 
-These points are assumptions until phase 0 proves them on a real phone:
+These points were assumptions until phase 0 tested them on a real phone. The [spike report](../spikes/0001-feasibility.md) has the measurements.
 
-1. Google sign-in works inside the WebView.
-2. The WebView keeps playing audio with the screen off while the foreground service runs.
-3. `addDocumentStartJavaScript` and `addWebMessageListener` are available through the .NET AndroidX WebKit bindings.
-4. Media3 `SimpleBasePlayer` can be subclassed from .NET and drive the media notification.
-5. The Activity is not destroyed while backgrounded during a one-hour session. If it is, the WebView must be owned by a longer-lived component and re-attached to the page.
-6. The Skip button accepts a click dispatched by a script. A script click is marked as untrusted by the browser, and a page can ignore it. If YouTube does, the fallback is a native tap: the script reports the button's rectangle and the bridge dispatches an Android `MotionEvent` to the WebView at that point, which the page receives as a trusted touch.
+1. Google sign-in works inside the WebView. **Confirmed** with the default WebView user agent.
+2. The WebView keeps playing audio in the background while the foreground service runs. **Confirmed, with a native window visibility override** ([ADR 0012](../adr/0012-native-window-visibility-for-background-playback.md)); a page script alone does not work. The long screen-off run is part of the field test in roadmap step 4.7.
+3. `addDocumentStartJavaScript` and `addWebMessageListener` are available through the .NET AndroidX WebKit bindings. **Confirmed** with `Xamarin.AndroidX.WebKit` 1.14.0.1 ([ADR 0014](../adr/0014-androidx-alignment-and-android-6-minimum.md)).
+4. Media3 `SimpleBasePlayer` can be subclassed from .NET and drive the media notification. **Confirmed** with Media3 1.11.1, which needs aligned AndroidX versions and Android 6.0 ([ADR 0014](../adr/0014-androidx-alignment-and-android-6-minimum.md)).
+5. The Activity is not destroyed while backgrounded during a one-hour session. **Confirmed**: it was never destroyed on its own. Without the foreground service the whole process is killed instead, so the WebView stays in the Activity and the foreground service runs whenever audio plays.
+6. The Skip button accepts a click dispatched by a script. **Rejected**: YouTube ignores script clicks. The planned fallback, a native tap at the rectangle the script reports, skipped 20 ads out of 20 ([ADR 0013](../adr/0013-native-tap-to-press-skip.md)).
 
 One more assumption is checked in phase 1 rather than in the spike: Mediator 3.0.2 generates and runs correctly for `net10.0` libraries and for the `net10.0-android` app with trimming enabled.

@@ -73,6 +73,7 @@ See [DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md).
 | --- | --- |
 | [Architecture](docs/architecture/ARCHITECTURE.md) | Layers, components, flows, state machine, message contract |
 | [Architecture decisions](docs/adr/) | Why each major decision was made |
+| [Feasibility spike](docs/spikes/0001-feasibility.md) | What phase 0 measured on a real phone |
 | [Roadmap](docs/ROADMAP.md) | Phases, steps and definition of done |
 | [Features](docs/FEATURES.md) | Requested and candidate features with priorities |
 | [Risks](docs/RISKS.md) | Risk register and mitigations |

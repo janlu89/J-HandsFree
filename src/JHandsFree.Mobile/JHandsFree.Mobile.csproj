@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+    <!-- Android 6.0: the AndroidX versions that Media3 needs require it (ADR 0014). -->
+    <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <!-- The release workflow overrides both versions; local builds use these. -->
+  <PropertyGroup Label="Android package">
+    <ApplicationTitle>J-HandsFree</ApplicationTitle>
+    <ApplicationId>com.janlu89.jhandsfree</ApplicationId>
+    <ApplicationDisplayVersion>$(VersionPrefix)</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+    <MauiFont Include="Resources\Fonts\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mediator.SourceGenerator" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Maui.Controls" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JHandsFree.Domain\JHandsFree.Domain.csproj" />
+    <ProjectReference Include="..\JHandsFree.UseCases\JHandsFree.UseCases.csproj" />
+    <ProjectReference Include="..\JHandsFree.Infrastructure.PlayerProtocol\JHandsFree.Infrastructure.PlayerProtocol.csproj" />
+    <ProjectReference Include="..\JHandsFree.Infrastructure.Android\JHandsFree.Infrastructure.Android.csproj" />
+  </ItemGroup>
+
+</Project>

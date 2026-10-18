@@ -1,6 +1,6 @@
 # ADR 0006: Media3 session service for background playback
 
-- **Status:** Accepted, to be validated by the phase 0 spike
+- **Status:** Accepted. Validated by the [phase 0 spike](../spikes/0001-feasibility.md) on Android 14, except the long screen-off run, which moves to the field test in roadmap step 4.7.
 - **Date:** 2026-10-16
 
 ## Context

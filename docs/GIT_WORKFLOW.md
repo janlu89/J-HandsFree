@@ -120,6 +120,7 @@ The first commit goes directly to `master` because protections do not exist yet.
 - [x] Allow squash merging. Default message: **Pull request title and description**.
 - [ ] Allow rebase merging.
 - [x] Always suggest updating pull request branches.
+- [x] Allow auto-merge. A pull request set to merge automatically is merged as soon as every required check passes.
 - [x] Automatically delete head branches. Protected branches are not deleted because the rulesets below restrict deletion.
 
 **Settings → General → Default branch:** `dev`, so new pull requests target `dev` by default.
@@ -138,10 +139,14 @@ The first commit goes directly to `master` because protections do not exist yet.
 | Require a pull request before merging | Yes, 0 approvals, require conversation resolution | Yes, 0 approvals, require conversation resolution |
 | Allowed merge methods | **Merge** only | **Squash** only |
 | Require status checks to pass | `Build and test`, `Player scripts`, `Source branch`, `Conventional title` | `Build and test`, `Player scripts`, `Conventional title` |
-| Require branches to be up to date before merging | Yes | Yes |
+| Require branches to be up to date before merging | No (see below) | Yes |
 
 Required approvals are 0 because a solo maintainer cannot approve their own pull request. The pull request is still mandatory, so every change passes the checks.
 
 `Source branch` is a workflow check that fails any pull request into `master` whose head branch is not `dev` of this repository. GitHub has no native rule for the source branch, so the required check enforces it.
 
-The status check names appear in the ruleset picker only after each workflow has run once. Add them after the first pull request.
+Every required check is restricted to the GitHub Actions app as its source, so a status with the same name reported by anything else cannot satisfy it.
+
+`Require branches to be up to date` stays off for `master` on purpose. Every release adds a merge commit to `master` that `dev` never receives, because `dev` is not synchronised back ([ADR 0008](adr/0008-branching-and-merge-strategy.md)). With the option on, every later release pull request would be reported as out of date, and updating it would need a direct merge into `dev`, which `protect-dev` forbids. The option would add nothing on `master` anyway: only `dev` can target it, and CI runs on the release pull request itself.
+
+The status check names appear in the ruleset picker only after each workflow has run once, so they are added in roadmap step 1.1, after the first pull request.

@@ -125,7 +125,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 <body>
 <main>
   <header>
-    <p class="eyebrow">Architecture plan · version 0.3 · 16 October 2026</p>
+    <p class="eyebrow">Architecture plan · version 0.5 · 18 October 2026 · phase 0 done</p>
     <h1>J-HandsFree</h1>
     <p class="lead">Personal Android app for listening to YouTube without touching the screen. Audio keeps playing with the screen off or with another app in front, and skippable ads are skipped as soon as the player shows the Skip button.</p>
     <dl class="facts">
@@ -137,6 +137,8 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
       <div><dt>Repository</dt><dd>Public, MIT license</dd></div>
     </dl>
     <nav class="toc" aria-label="Sections">
+      <a href="#progress">Progress</a>
+      <a href="#findings">Spike results</a>
       <a href="#overview">Overview</a>
       <a href="#projects">Projects</a>
       <a href="#skip">Ad skip flow</a>
@@ -151,9 +153,49 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
     </nav>
   </header>
 
+  <section id="progress">
+    <h2>Phase 0 progress</h2>
+    <p>The feasibility spike ran on a throwaway branch, <code>spike/feasibility</code>, on a Xiaomi Redmi Note 12 Pro+ 5G with Android 14 (HyperOS 2.0) and Android System WebView 155. Its measurements are in the <a href="../spikes/0001-feasibility.md">spike report</a>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>Goal</th><th>Status</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">0.0</td><td>Publish the documentation</td><td><span class="chip low">done</span></td><td>Public repository, <code>master</code> and <code>dev</code>, settings and rulesets applied</td></tr>
+          <tr><td class="mono">0.1</td><td>Throwaway MAUI app on the phone</td><td><span class="chip low">done</span></td><td>Builds without warnings and runs; installs only for the phone's owner user</td></tr>
+          <tr><td class="mono">0.2</td><td>Google sign-in in the WebView</td><td><span class="chip low">done</span></td><td>Works with the default WebView user agent; subscriptions and playlists visible</td></tr>
+          <tr><td class="mono">0.3</td><td>Audio with another app in front</td><td><span class="chip low">done</span></td><td>The page script alone is not enough; a native window visibility override keeps playback</td></tr>
+          <tr><td class="mono">0.4</td><td>Media3 session service</td><td><span class="chip low">done</span></td><td>Foreground service, lock screen controls and ducking work; the long screen-off run moves to the car field test</td></tr>
+          <tr><td class="mono">0.5</td><td>Origin-restricted message bridge</td><td><span class="chip low">done</span></td><td>Bridge object only on <code>m.youtube.com</code>; round trip median 2 to 3 ms; the session follows the page</td></tr>
+          <tr><td class="mono">0.6</td><td>Detect ads and press Skip, 20 ads</td><td><span class="chip low">done</span></td><td>Script click ignored; the native tap skipped 20 ads out of 20, a median of 211 ms after the Skip button appeared, also with the app in the background</td></tr>
+          <tr><td class="mono">0.7</td><td>Activity and WebView survival, one hour</td><td><span class="chip low">done</span></td><td>Never destroyed on their own, in up to 75 minutes in the background; without the foreground service the whole process is killed</td></tr>
+          <tr><td class="mono">0.8</td><td>Spike report and decisions</td><td><span class="chip low">done</span></td><td><code>docs/spikes/0001-feasibility.md</code>, ADRs 0012 to 0014, status of ADRs 0002, 0006 and 0007</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="findings">
+    <h2>Spike results</h2>
+    <p>These results changed parts of the plan. Each change is recorded as an ADR, and the diagrams below already show the new design.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Finding</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr><td>Background playback</td><td>Playback stops whenever Chromium considers the WebView hidden, even when the page is told it is visible. Reporting the window as visible from a <code>WebView</code> subclass (<code>OnWindowVisibilityChanged</code>) keeps it playing.</td><td><code>KeepVisibleWebView</code> in Mobile reports the window as visible; the visibility shield script is dropped; the override is switched off after the pause timeout. ADR 0012.</td></tr>
+          <tr><td>Ad skip</td><td>YouTube ignores clicks raised by scripts. A <code>MotionEvent</code> tap dispatched to the WebView at the button position closed the ad 20 times out of 20, a median of 211 ms after the button appeared.</td><td>The native tap is the only skip method: after <code>ad.locateSkip</code> the page reports the button rectangle and the bridge taps it. ADR 0013.</td></tr>
+          <tr><td>Background survival</td><td>The Activity and the WebView were never destroyed on their own. Without the foreground service the whole process was killed: by HyperOS 10 minutes after the screen locked, and by Android for CPU use.</td><td>The foreground service starts by itself whenever audio plays and the WebView stays in the Activity. The field test checks a long screen-off run.</td></tr>
+          <tr><td>Sign-in</td><td>Google sign-in works with the default user agent on WebView 155.</td><td>No user agent change; the unlisted playlist fallback is not needed for now.</td></tr>
+          <tr><td>Message bridge</td><td><code>addWebMessageListener</code> injects the bridge object only into the allowed origin and round-trips in a few milliseconds.</td><td>Confirms ADR 0007; the bridge is never the bottleneck for the one-second skip target.</td></tr>
+          <tr><td>Media3</td><td>Media3 1.11.1 needs nine explicit AndroidX references to align with MAUI 10, and AndroidX Lifecycle 2.11 raises the minimum Android version to 6.0 (API 23). After a pause, Media3 keeps the foreground service for 10 minutes.</td><td>The pins go into <code>Directory.Packages.props</code> and Android 6.0 becomes the minimum, ADR 0014; the pause timeout can use Media3's own setting.</td></tr>
+          <tr><td>Notification seek bar</td><td>It needs the player facade to publish position and duration, and an absolute seek command that the contract lacks.</td><td>Not built, by the owner's decision.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="overview">
     <h2>Component overview</h2>
-    <p>Everything runs in one Android process. The YouTube page runs inside a WebView. Injected scripts act as sensors and actuators: they observe the player and press its buttons. The C# code makes every decision.</p>
+    <p>Everything runs in one Android process. The YouTube page runs inside a WebView. Injected scripts act as sensors and actuators: they observe the player and run its commands. The Skip button is pressed with a native tap, and the WebView itself reports its window as visible, so audio continues in the background. The C# code makes every decision.</p>
     <figure>
       <div class="scroll">
         <svg class="arch" viewBox="0 0 980 580" role="img" aria-label="The app process contains a WebView with the YouTube page and injected scripts, a bridge with a protocol translator, the use case coordinators, and a Media3 playback service hosting a player facade connected to the lock screen and Bluetooth controls.">
@@ -178,12 +220,12 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
           <text class="tag" x="252" y="120">APP PROCESS · .NET MAUI ON ANDROID</text>
 
           <rect class="box" x="600" y="140" width="340" height="180" rx="8"/>
-          <text class="t" x="616" y="163">WebView (PlayerPage)</text>
+          <text class="t" x="616" y="163">KeepVisibleWebView (PlayerPage)</text>
           <rect class="box" x="616" y="176" width="308" height="50" rx="6"/>
           <text class="t" x="770" y="206" text-anchor="middle">YouTube page</text>
           <rect class="hot" x="616" y="244" width="308" height="60" rx="6"/>
           <text class="t" x="770" y="269" text-anchor="middle">Injected scripts (TypeScript)</text>
-          <text class="s" x="770" y="289" text-anchor="middle">visibility · ads · idle prompt · controls</text>
+          <text class="s" x="770" y="289" text-anchor="middle">ads · idle prompt · controls</text>
 
           <rect class="box" x="620" y="372" width="300" height="64" rx="6"/>
           <text class="t" x="770" y="397" text-anchor="middle">WebViewPlayerBridge</text>
@@ -212,7 +254,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
           <line class="flow" x1="740" y1="304" x2="740" y2="371" marker-end="url(#arr)"/>
           <text class="lbl" x="732" y="344" text-anchor="end">events</text>
           <line class="flow" x1="820" y1="372" x2="820" y2="305" marker-end="url(#arr)"/>
-          <text class="lbl" x="828" y="344">commands</text>
+          <text class="lbl" x="828" y="344">commands · tap</text>
 
           <line class="flow" x1="620" y1="392" x2="521" y2="392" marker-end="url(#arr)"/>
           <text class="lbl" x="570" y="384" text-anchor="middle">notifications</text>
@@ -249,8 +291,8 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
           <tr><td><strong>JHandsFree.UseCases</strong></td><td class="mono">net10.0</td><td>Notifications, commands and queries; coordinators as handlers; ports; isolating notification publisher and logging behaviour</td><td>Domain, Mediator.Abstractions</td></tr>
           <tr><td><strong>JHandsFree.Infrastructure.PlayerProtocol</strong></td><td class="mono">net10.0</td><td>Message envelope, source-generated JSON context, translation to typed events and commands</td><td>UseCases</td></tr>
           <tr><td><strong>JHandsFree.Infrastructure.Android</strong></td><td class="mono">net10.0-android</td><td>WebViewPlayerBridge, PlayerScriptInjector, PlaybackService, WebViewSessionPlayer, settings and statistics stores</td><td>UseCases, PlayerProtocol</td></tr>
-          <tr><td><strong>JHandsFree.Mobile</strong></td><td class="mono">net10.0-android</td><td>MauiProgram, pages, view models, DI extension methods including the AddMediator call</td><td>All (composition root), Mediator.SourceGenerator</td></tr>
-          <tr><td><strong>player-scripts</strong></td><td class="mono">TypeScript</td><td>visibility-shield, ad-watcher, idle-prompt-watcher, player-controller, selectors</td><td>Nothing; bundle embedded in Infrastructure.Android</td></tr>
+          <tr><td><strong>JHandsFree.Mobile</strong></td><td class="mono">net10.0-android</td><td>MauiProgram, pages, view models, KeepVisibleWebView with its handler and visibility adapter, DI extension methods including the AddMediator call</td><td>All (composition root), Mediator.SourceGenerator</td></tr>
+          <tr><td><strong>player-scripts</strong></td><td class="mono">TypeScript</td><td>ad-watcher, idle-prompt-watcher, player-controller, selectors</td><td>Nothing; bundle embedded in Infrastructure.Android</td></tr>
           <tr><td><strong>Tests</strong></td><td class="mono">xUnit v3</td><td>Domain.Tests, UseCases.Tests, PlayerProtocol.Tests, shared contract fixtures</td><td>The project under test</td></tr>
         </tbody>
       </table>
@@ -263,7 +305,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 
   <section id="skip">
     <h2>Automatic ad skip flow</h2>
-    <p>The script watches the player with a MutationObserver. It blocks nothing: it waits for YouTube to show the Skip button and presses it.</p>
+    <p>The script watches the player with a MutationObserver. It blocks nothing: it waits for YouTube to show the Skip button and reports where it is, and the app taps it like a finger.</p>
     <figure>
       <div class="scroll">
 <pre class="mermaid">
@@ -285,23 +327,28 @@ sequenceDiagram
     B->>M: Publish(AdBecameSkippable)
     M->>A: Handle(AdBecameSkippable)
     A->>A: evaluate SkipPolicy
-    A->>B: IPlayerCommands: SkipAd
-    B->>S: ad.skip
-    S->>P: press Skip
+    A->>B: IPlayerCommands: LocateSkipButton
+    B->>S: ad.locateSkip
+    S->>B: ad.skipTarget (button rectangle)
+    B->>M: Publish(SkipTargetLocated)
+    M->>A: Handle(SkipTargetLocated)
+    A->>B: IPlayerCommands: TapSkipButton
+    B->>P: native tap on Skip
     P->>S: content resumes
-    S->>B: ad.ended skipped=true
+    S->>B: ad.ended
     B->>M: Publish(AdEnded)
     M->>A: Handle(AdEnded)
+    A->>A: ended within 1 s of the tap
     A->>R: save SkipRecord
 </pre>
       </div>
-      <figcaption>Non-skippable ads cannot be skipped; the app lets them finish and only records them. If the page ignores script clicks, the script reports the button position and the bridge performs a native tap instead.</figcaption>
+      <figcaption>Non-skippable ads cannot be skipped; the app lets them finish and only records them. YouTube ignores script clicks, so the app taps the button natively: in the spike this skipped 20 ads out of 20, a median of 211 ms after the button appeared.</figcaption>
     </figure>
   </section>
 
   <section id="background">
     <h2>Background playback flow</h2>
-    <p>Two things keep audio alive. The Media3 playback service keeps the process running. The visibility shield makes the page believe it is always visible, so YouTube does not pause the video.</p>
+    <p>Two things keep audio alive. The Media3 playback service keeps the process running. <code>KeepVisibleWebView</code> tells Chromium that its window is visible, so the page's media is never suspended.</p>
     <figure>
       <div class="scroll">
 <pre class="mermaid">
@@ -311,22 +358,25 @@ sequenceDiagram
     participant C as PlaybackCoordinator
     participant P as WebViewSessionPlayer
     participant S as PlaybackService
+    participant V as KeepVisibleWebView
     U->>W: starts a playlist (app visible)
     W->>C: PlayerStateChanged, via mediator
     C->>P: publish snapshot
     P->>S: isPlaying = true
     S->>S: start foreground service with media notification
+    C->>V: keep visible
     U->>W: turns the screen off, opens the navigator
-    Note over W: the page stays "visible", audio continues
+    Note over W,V: Chromium sees a visible window, audio continues
     W->>C: IdlePromptShown, via mediator
     C->>W: idle.dismiss
     U->>P: pause from the steering wheel
     P->>C: HandleMediaButton(Pause), via mediator
     C->>W: player.pause
     Note over C: after the pause timeout, release background playback
+    C->>V: allow hidden, Chromium throttles the page
 </pre>
       </div>
-      <figcaption>Playback always starts from the visible UI, because from Android 17 audio from an app without a foreground service started in that moment is restricted.</figcaption>
+      <figcaption>Playback always starts from the visible UI, because from Android 17 audio from an app without a foreground service started in that moment is restricted. Without the foreground service the phone kills the process within minutes, as the spike measured.</figcaption>
     </figure>
   </section>
 
@@ -359,7 +409,7 @@ stateDiagram-v2
 
   <section id="ports">
     <h2>Messages, ports and adapters</h2>
-    <p>Inbound traffic is dispatched in process by Mediator: the bridge publishes notifications, the media session and view models send commands and queries. Outbound calls go through ports that Infrastructure implements. MauiProgram wires everything together.</p>
+    <p>Inbound traffic is dispatched in process by Mediator: the bridge publishes notifications, the media session and view models send commands and queries. Outbound calls go through ports that Infrastructure implements, except the visibility switch, which lives in Mobile next to the view it controls. MauiProgram wires everything together.</p>
     <figure>
       <div class="scroll">
 <pre class="mermaid">
@@ -389,6 +439,11 @@ classDiagram
         &lt;&lt;interface&gt;&gt;
         +GetSkipPolicy() SkipPolicy
     }
+    class IPlayerVisibility {
+        &lt;&lt;interface&gt;&gt;
+        +KeepVisible()
+        +AllowHidden()
+    }
     class PlaybackCoordinator
     class AdSkipCoordinator
     class IdlePromptCoordinator
@@ -396,6 +451,7 @@ classDiagram
     class WebViewSessionPlayer
     class SqliteSkipRecordRepository
     class SharedPreferencesSettingsStore
+    class PlayerPageVisibility
     WebViewPlayerBridge --> IPublisher : player events
     WebViewSessionPlayer --> ISender : media buttons
     IPublisher ..> PlaybackCoordinator : PlayerStateChanged
@@ -404,7 +460,8 @@ classDiagram
     ISender ..> PlaybackCoordinator : HandleMediaButton
     PlaybackCoordinator --> IPlayerCommands : commands
     PlaybackCoordinator --> ISystemMediaSession : syncs
-    AdSkipCoordinator --> IPlayerCommands : SkipAd
+    PlaybackCoordinator --> IPlayerVisibility : keep visible, allow hidden
+    AdSkipCoordinator --> IPlayerCommands : locate and tap Skip
     AdSkipCoordinator --> ISkipRecordRepository : records
     AdSkipCoordinator --> ISettingsStore : reads policy
     IdlePromptCoordinator --> IPlayerCommands : dismiss prompt
@@ -412,6 +469,7 @@ classDiagram
     ISystemMediaSession <|.. WebViewSessionPlayer
     ISkipRecordRepository <|.. SqliteSkipRecordRepository
     ISettingsStore <|.. SharedPreferencesSettingsStore
+    IPlayerVisibility <|.. PlayerPageVisibility
 </pre>
       </div>
       <figcaption>A custom notification publisher isolates each handler, so one failure never reaches the WebView or stops the others. Time comes from the built-in TimeProvider, so timeouts are tested with a fake clock.</figcaption>
@@ -429,12 +487,12 @@ classDiagram
         <thead><tr><th>Area</th><th>Choice</th><th>Status</th><th>Note</th></tr></thead>
         <tbody>
           <tr><td>Framework</td><td>.NET MAUI, Android only</td><td>10.0.x stable (LTS); .NET 11 launches at .NET Conf, 10 to 12 November</td><td>Migration is its own phase after the release</td></tr>
-          <tr><td>Android target</td><td><code>net10.0-android</code></td><td>API 36</td><td>.NET 11 brings Android API 37 and CoreCLR by default</td></tr>
+          <tr><td>Android target</td><td><code>net10.0-android</code></td><td>API 36; minimum API 23 (Android 6.0)</td><td>.NET 11 brings Android API 37 and CoreCLR by default</td></tr>
           <tr><td>Toolkit</td><td>CommunityToolkit.Maui 15+</td><td>15.0 is .NET 11 compatible</td><td>Earlier versions block the migration</td></tr>
           <tr><td>MVVM</td><td>CommunityToolkit.Mvvm</td><td>Stable</td><td>Source-generated view models</td></tr>
           <tr><td>In-process messaging</td><td>Mediator 3.0.2 (Martin Othamar)</td><td>Stable; 3.1 with explicit .NET 10 support is a release candidate</td><td>MIT, source-generated, verified on net10.0 in phase 1</td></tr>
-          <tr><td>Background media</td><td>AndroidX Media3 session</td><td>.NET bindings available</td><td>Session service manages the foreground service and notification</td></tr>
-          <tr><td>Script channel</td><td>AndroidX WebKit</td><td>Validate in the spike</td><td>Document-start injection and origin-restricted messaging</td></tr>
+          <tr><td>Background media</td><td>AndroidX Media3 session</td><td>1.11.1 validated in the spike</td><td>Nine AndroidX packages pinned to align with MAUI 10, and a minimum of API 23 (ADR 0014)</td></tr>
+          <tr><td>Script channel</td><td>AndroidX WebKit</td><td>1.14.0.1 validated in the spike</td><td>Document-start injection and origin-restricted messaging both supported on WebView 155</td></tr>
           <tr><td>Scripts</td><td>TypeScript, esbuild, Vitest</td><td>Stable</td><td>Typed, versioned message contract</td></tr>
           <tr><td>Tests</td><td>xUnit v3, Shouldly, NSubstitute</td><td>Stable</td><td>All permissively licensed</td></tr>
           <tr><td>JDK</td><td>Microsoft OpenJDK 21</td><td>Recommended for .NET for Android</td><td>Same version locally and in CI</td></tr>
@@ -489,15 +547,16 @@ gitGraph
     <h2>Top risks</h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+        <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th><th>Spike status</th></tr></thead>
         <tbody>
-          <tr><td>Google blocks sign-in inside a WebView</td><td><span class="chip high">High</span></td><td>Spike tests two user agents. Fallback: unlisted personal playlists opened by link.</td></tr>
-          <tr><td>Android restricts audio without a valid foreground service</td><td><span class="chip high">High</span></td><td>Media3 session service of type mediaPlayback, always started from the visible UI.</td></tr>
-          <tr><td>The Activity is destroyed in the background and takes the WebView with it</td><td><span class="chip high">High</span></td><td>Measured in the spike. Fallback: the WebView is owned by a longer-lived component.</td></tr>
-          <tr><td>The Skip button ignores script clicks</td><td><span class="chip high">High</span></td><td>Native tap with a MotionEvent at the button position.</td></tr>
-          <tr><td>YouTube changes its markup</td><td><span class="chip mid">Medium</span></td><td>One selectors module, snapshot tests, health warning, remote selector data.</td></tr>
-          <tr><td>The phone maker's battery manager kills the app</td><td><span class="chip mid">Medium</span></td><td>One-time prompt to exclude the app from battery optimization.</td></tr>
-          <tr><td>Signing key lost</td><td><span class="chip low">Low</span></td><td>Offline backup; passwords in a password manager.</td></tr>
+          <tr><td>Google blocks sign-in inside a WebView</td><td><span class="chip high">High</span></td><td>Default user agent. Fallbacks: the user agent without <code>; wv</code>, then unlisted personal playlists opened by link.</td><td>Did not occur: sign-in works with the default user agent</td></tr>
+          <tr><td>Android restricts audio without a valid foreground service</td><td><span class="chip high">High</span></td><td>Media3 session service of type mediaPlayback, always started from the visible UI.</td><td>Foreground service confirmed; the test phone runs Android 14, so Android 17 is not yet observed</td></tr>
+          <tr><td>The Activity is destroyed in the background and takes the WebView with it</td><td><span class="chip high">High</span></td><td>None needed: the WebView stays in the Activity.</td><td>Did not occur: the Activity survived up to 75 minutes in the background</td></tr>
+          <tr><td>The Skip button ignores script clicks</td><td><span class="chip high">High</span></td><td>Native tap with a MotionEvent at the button position; script clicks are not used.</td><td>Occurred; the native tap skipped 20 ads out of 20</td></tr>
+          <tr><td>YouTube changes its markup</td><td><span class="chip mid">Medium</span></td><td>One selectors module, snapshot tests, health warning, remote selector data.</td><td>Player markup recorded in the spike for future snapshots</td></tr>
+          <tr><td>The phone maker's battery manager, or Android, kills the app in the background</td><td><span class="chip high">High</span></td><td>Foreground service whenever audio plays; page allowed to be hidden after the pause timeout; prompt to exclude the app from battery optimization.</td><td>Occurred without the foreground service: HyperOS kills cached apps 10 minutes after the screen locks. With the service, checked in the field test</td></tr>
+          <tr><td>The always-visible WebView keeps the page running in the background</td><td><span class="chip mid">Medium</span></td><td>Foreground service while playing; page allowed to be hidden after the pause timeout; battery measured in the field test.</td><td>Observed: the app and its renderer hold 300 to 500 MB</td></tr>
+          <tr><td>Signing key lost</td><td><span class="chip low">Low</span></td><td>Offline backup; passwords in a password manager.</td><td>Not yet relevant (phase 1)</td></tr>
         </tbody>
       </table>
     </div>
@@ -507,13 +566,13 @@ gitGraph
     <h2>Implementation phases</h2>
     <p>Ordered to remove the risks that could stop the project first, then built from the inside out.</p>
     <ol class="phases">
-      <li class="next" data-phase="0">
-        <span class="ph-title">Feasibility spike <span class="chip">next</span></span>
-        <p>Throwaway app: sign-in, 30 minutes of screen-off audio with the navigator, Skip click, message round trip, Activity survival.</p>
+      <li data-phase="0">
+        <span class="ph-title">Feasibility spike <span class="chip">done</span></span>
+        <p>Throwaway app: sign-in, background audio with another app in front, Skip by native tap, message round trip, Activity survival. Every assumption has a result; see <a href="#progress">Phase 0 progress</a> and the <a href="../spikes/0001-feasibility.md">spike report</a>.</p>
         <span class="done">Done when: every assumption is confirmed or has a chosen fallback, written in a spike report.</span>
       </li>
-      <li data-phase="1">
-        <span class="ph-title">Foundations</span>
+      <li class="next" data-phase="1">
+        <span class="ph-title">Foundations <span class="chip">next</span></span>
         <p>Repository, rulesets, solution, test projects, scripts project, DI wiring, CI, signing, first release v0.1.0.</p>
         <span class="done">Done when: a merge into master publishes a signed APK that Obtainium installs.</span>
       </li>
@@ -524,17 +583,17 @@ gitGraph
       </li>
       <li data-phase="3">
         <span class="ph-title">Player and bridge</span>
-        <p>PlayerPage, script injection, protocol translator, bridge, selectors with snapshot tests, sign-in or fallback.</p>
+        <p>PlayerPage, script injection, protocol translator, bridge, selectors with snapshot tests, sign-in.</p>
         <span class="done">Done when: play, pause and next work from C# commands on the phone.</span>
       </li>
       <li data-phase="4">
         <span class="ph-title">Background playback</span>
-        <p>Visibility shield, Media3 service and player facade, permissions, system controls, idle prompt, pause timeout.</p>
+        <p>KeepVisibleWebView, Media3 service and player facade, permissions, system controls, idle prompt, pause timeout.</p>
         <span class="done">Done when: a one-hour field test in the car passes without touching the phone.</span>
       </li>
       <li data-phase="5">
         <span class="ph-title">Automatic ad skip</span>
-        <p>Ad watcher, skip coordinator, settings, skip statistics, diagnostics and health warning.</p>
+        <p>Ad watcher, skip coordinator with the native tap, settings, skip statistics, diagnostics and health warning.</p>
         <span class="done">Done when: 20 consecutive skippable ads are skipped within one second each.</span>
       </li>
       <li data-phase="6">
@@ -564,6 +623,9 @@ gitGraph
           <tr><td>Approach</td><td>WebView on the official mobile website; no stream extraction, no ad blocking</td></tr>
           <tr><td>Architecture</td><td>Clean Architecture with ports and adapters and MVVM; no CQRS</td></tr>
           <tr><td>Messaging</td><td>Mediator 3.0.2, source-generated, for in-process dispatch only</td></tr>
+          <tr><td>Background playback</td><td>Media3 foreground service and a native window visibility override in KeepVisibleWebView</td></tr>
+          <tr><td>Ad skip</td><td>Native tap at the position the page reports; no script clicks</td></tr>
+          <tr><td>Android versions</td><td>Minimum Android 6.0 (API 23); AndroidX versions pinned for Media3 and WebKit</td></tr>
           <tr><td>Backend</td><td>None</td></tr>
           <tr><td>.NET</td><td>Start on .NET 10, migrate after .NET 11 is released</td></tr>
           <tr><td>Repository</td><td>Public, MIT license</td></tr>

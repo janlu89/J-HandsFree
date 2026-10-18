@@ -65,7 +65,12 @@ dotnet test JHandsFree.slnx
 dotnet build src\JHandsFree.Mobile -t:Run -f net10.0-android
 ```
 
-The last command installs and starts the app on the connected phone.
+Building Infrastructure.Android also builds the player scripts: it runs `npm ci` when `package-lock.json` changed and `npm run build` when a script changed, then embeds the bundle. Node.js must therefore be on the `PATH` for every .NET build.
+
+The last command installs and starts the app on the connected phone. If the install fails with `INSTALL_FAILED_USER_RESTRICTED`:
+
+- Unlock the phone and accept the install prompt. Some vendors, such as Xiaomi with **Install via USB**, ask for every new app installed over USB.
+- On a phone with more than one Android user, install for the owner only: add `-p:AndroidDeviceUserId=0` to the last command.
 
 ## 6. Before opening a pull request
 
