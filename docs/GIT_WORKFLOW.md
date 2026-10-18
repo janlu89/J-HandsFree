@@ -120,6 +120,7 @@ The first commit goes directly to `master` because protections do not exist yet.
 - [x] Allow squash merging. Default message: **Pull request title and description**.
 - [ ] Allow rebase merging.
 - [x] Always suggest updating pull request branches.
+- [x] Allow auto-merge. A pull request set to merge automatically is merged as soon as every required check passes.
 - [x] Automatically delete head branches. Protected branches are not deleted because the rulesets below restrict deletion.
 
 **Settings → General → Default branch:** `dev`, so new pull requests target `dev` by default.
