@@ -173,10 +173,10 @@ Source code dependencies point inwards only. The Domain knows nothing about Andr
 | --- | --- | --- |
 | `PlaybackSession` | Entity, aggregate root | Holds the current state, the current video and the current ad break. Accepts only valid transitions. |
 | `PlaybackState` | Enum | `Idle`, `Loading`, `PlayingContent`, `PlayingAd`, `AdSkippable`, `Paused`, `Ended` |
-| `VideoMetadata` | Value object | `VideoId`, title, channel, duration |
-| `VideoId` | Value object | Validated YouTube video identifier |
+| `VideoMetadata` | Value object | `VideoId`, title, channel, and the duration when it is known (not for a live stream) |
+| `VideoId` | Value object | Validated YouTube video identifier: eleven characters from `A-Z`, `a-z`, `0-9`, `-` and `_` |
 | `AdBreak` | Value object | One ad break, whatever the number of ads in it: kind, start time, whether it became skippable. The kind is `Unknown` until the Skip button appears or the break ends |
-| `AdKind` | Enum | `Skippable`, `NonSkippable`, `Unknown` |
+| `AdKind` | Enum | `Unknown` (the default), `Skippable`, `NonSkippable` |
 | `SkipPolicy` | Policy | Whether auto skip is enabled and the delay before pressing Skip |
 | `PauseTimeoutPolicy` | Policy | How long a pause may last before background playback is released (default 10 minutes) |
 | `SkipRecord` | Value object | What was skipped, when, and how many seconds it saved |

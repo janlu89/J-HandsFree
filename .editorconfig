@@ -82,6 +82,14 @@ dotnet_naming_rule.members_are_pascal_case.style = pascal_style
 dotnet_naming_symbols.member_symbols.applicable_kinds = method, property, event
 dotnet_naming_symbols.member_symbols.applicable_accessibilities = *
 
+# Naming: constants are PascalCase, also when private (more specific than the private field rule below)
+dotnet_naming_rule.constants_are_pascal_case.severity = warning
+dotnet_naming_rule.constants_are_pascal_case.symbols = constant_symbols
+dotnet_naming_rule.constants_are_pascal_case.style = pascal_style
+dotnet_naming_symbols.constant_symbols.applicable_kinds = field
+dotnet_naming_symbols.constant_symbols.applicable_accessibilities = *
+dotnet_naming_symbols.constant_symbols.required_modifiers = const
+
 # Naming: private fields are _camelCase
 dotnet_naming_rule.private_fields_underscore.severity = warning
 dotnet_naming_rule.private_fields_underscore.symbols = private_field_symbols

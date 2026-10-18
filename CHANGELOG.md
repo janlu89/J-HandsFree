@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Domain value objects: `VideoId`, which accepts only the eleven URL-safe characters of a YouTube video id, `VideoMetadata` with an optional duration for live streams, and `AdBreak`, whose kind stays unknown until the Skip button appears or the break ends.
+
 ### Changed
 
 - Roadmap, overview page, risk register and README record the end of phase 1 and release v0.1.0. The development setup explains why a local build cannot update a release installed from GitHub.
