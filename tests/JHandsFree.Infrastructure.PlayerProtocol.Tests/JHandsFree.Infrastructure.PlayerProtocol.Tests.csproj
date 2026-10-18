@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JHandsFree.Infrastructure.PlayerProtocol\JHandsFree.Infrastructure.PlayerProtocol.csproj" />
+  </ItemGroup>
+
+</Project>
