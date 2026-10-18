@@ -1,6 +1,6 @@
 # ADR 0007: TypeScript player scripts with a versioned message contract
 
-- **Status:** Accepted
+- **Status:** Accepted. The ad skip messages of the contract are changed by [ADR 0013](0013-native-tap-to-press-skip.md).
 - **Date:** 2026-10-16
 
 ## Context

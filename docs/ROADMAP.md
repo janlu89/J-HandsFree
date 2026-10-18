@@ -42,14 +42,14 @@ flowchart LR
 ### Steps
 
 - [x] 0.0 Publish the documentation: create the public GitHub repository with `master` and `dev`, and apply the settings and rulesets from the one-time setup in [GIT_WORKFLOW.md](GIT_WORKFLOW.md). Status checks are added to the rulesets in step 1.1.
-- [ ] 0.1 Create a throwaway MAUI app targeting `net10.0-android` only.
-- [ ] 0.2 Load `https://m.youtube.com` in a WebView. Try Google sign-in with the default user agent, then with the `; wv` marker removed from the user agent. Record the result.
-- [ ] 0.3 Inject a visibility shield at document start with AndroidX WebKit `addDocumentStartJavaScript`. Switch to another app and confirm audio continues.
-- [ ] 0.4 Prototype Media3 `MediaSessionService` with a minimal `SimpleBasePlayer` subclass. Turn the screen off and run Google Maps navigation for 30 minutes. Confirm audio continues and navigation prompts duck the audio.
-- [ ] 0.5 Round-trip a message with `addWebMessageListener` restricted to the YouTube origin.
-- [ ] 0.6 Detect an ad and press Skip with a script click over at least 20 ads. If clicks are ignored, try a native tap with a `MotionEvent` at the button position.
-- [ ] 0.7 Leave the app in the background for one hour with "Don't keep activities" off and check whether the Activity and WebView survive.
-- [ ] 0.8 Write `docs/spikes/0001-feasibility.md` with results, screenshots and decisions. Update the status of ADR 0002 and ADR 0006.
+- [x] 0.1 Create a throwaway MAUI app targeting `net10.0-android` only.
+- [x] 0.2 Load `https://m.youtube.com` in a WebView. Try Google sign-in with the default user agent, then with the `; wv` marker removed from the user agent. Record the result.
+- [x] 0.3 Inject a visibility shield at document start with AndroidX WebKit `addDocumentStartJavaScript`. Switch to another app and confirm audio continues.
+- [x] 0.4 Prototype Media3 `MediaSessionService` with a minimal `SimpleBasePlayer` subclass. Turn the screen off and run Google Maps navigation for 30 minutes. Confirm audio continues and navigation prompts duck the audio.
+- [x] 0.5 Round-trip a message with `addWebMessageListener` restricted to the YouTube origin.
+- [x] 0.6 Detect an ad and press Skip with a script click over at least 20 ads. If clicks are ignored, try a native tap with a `MotionEvent` at the button position.
+- [x] 0.7 Leave the app in the background for one hour with "Don't keep activities" off and check whether the Activity and WebView survive.
+- [x] 0.8 Write `docs/spikes/0001-feasibility.md` with results and decisions. Update the status of ADR 0002 and ADR 0006. Screenshots were left out, because a signed-in YouTube page shows the account and its history.
 
 ### Definition of done
 
@@ -92,10 +92,10 @@ flowchart LR
 - [ ] 2.3 `SkipPolicy` and `PauseTimeoutPolicy`.
 - [ ] 2.4 Messages as Mediator records: notifications for player events, commands for actions, queries for reads (see the architecture, section 7). `PlayerCommand` records for the page and the ports.
 - [ ] 2.5 `PlaybackCoordinator` as a notification and command handler, tested by calling `Handle` directly with substitutes for the ports.
-- [ ] 2.6 `AdSkipCoordinator`, tested the same way, including disabled policy, non-skippable ads, the skip delay and the native tap fallback.
+- [ ] 2.6 `AdSkipCoordinator`, tested the same way, including disabled policy, non-skippable ads, the skip delay, the locate-then-tap sequence, and a skip that counts only when the break ends within one second of the tap.
 - [ ] 2.7 `IdlePromptCoordinator`, `SkipPolicyHandlers` and `SkipTotalsHandler`.
 - [ ] 2.8 `IsolatingNotificationPublisher` and `LoggingBehavior`, each with unit tests.
-- [ ] 2.9 Composition test in `JHandsFree.UseCases.Tests`: reference `Mediator.SourceGenerator`, build a real service provider, publish `AdBecameSkippable` and assert that `IPlayerCommands` received `SkipAd`; publish to a failing handler and assert the other handlers still ran.
+- [ ] 2.9 Composition test in `JHandsFree.UseCases.Tests`: reference `Mediator.SourceGenerator`, build a real service provider, publish `AdBecameSkippable` and assert that `IPlayerCommands` received `LocateSkipButton`; publish to a failing handler and assert the other handlers still ran.
 
 ### Definition of done
 
@@ -110,14 +110,14 @@ flowchart LR
 
 ### Steps
 
-- [ ] 3.1 `PlayerPage` with a WebView and a handler hook that exposes the native `Android.Webkit.WebView`.
-- [ ] 3.2 `PlayerScriptInjector` with feature detection and a clear message when Android System WebView is too old.
+- [ ] 3.1 `PlayerPage` with a WebView and a handler hook that exposes the native `Android.Webkit.WebView`. WebView remote debugging is enabled in Debug builds only.
+- [ ] 3.2 `PlayerScriptInjector` with feature detection and a clear message when Android System WebView is too old. `Xamarin.AndroidX.WebKit` pinned as in ADR 0014.
 - [ ] 3.3 `bridge-client` and `selectors` scripts with the message envelope.
 - [ ] 3.4 `player-controller` script: state, metadata and commands.
 - [ ] 3.5 PlayerProtocol translator with a `System.Text.Json` source-generated context, and contract fixtures in `tests/contract-fixtures/` tested from C# and TypeScript.
 - [ ] 3.6 `WebViewPlayerBridge` implementing `IPlayerCommands` and publishing translated notifications through `IPublisher`.
 - [ ] 3.7 Snapshot tests for the selectors against saved player markup.
-- [ ] 3.8 Sign-in flow, or the unlisted playlist fallback chosen in phase 0.
+- [ ] 3.8 Sign-in flow with the default WebView user agent, validated in phase 0. Confirm that the session survives an app restart, and record whether sign-in needs third-party cookies.
 
 ### Definition of done
 
@@ -132,13 +132,13 @@ flowchart LR
 
 ### Steps
 
-- [ ] 4.1 `visibility-shield` script.
-- [ ] 4.2 `PlaybackService` as a Media3 `MediaSessionService` and `WebViewSessionPlayer` as a `SimpleBasePlayer`.
+- [ ] 4.1 `KeepVisibleWebView`, a `MauiWebView` subclass created by a custom WebView handler that reports its window as visible during background playback, and the `IPlayerVisibility` adapter. See ADR 0012.
+- [ ] 4.2 `PlaybackService` as a Media3 `MediaSessionService` and `WebViewSessionPlayer` as a `SimpleBasePlayer`, with the AndroidX pins from ADR 0014. The session starts by itself when the page reports `playing`.
 - [ ] 4.3 Manifest permissions `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, notification permission request, and a one-time prompt to exclude the app from battery optimization.
-- [ ] 4.4 Lock screen, notification, headphone and Bluetooth controls routed to `PlaybackCoordinator`.
+- [ ] 4.4 Lock screen, notification, headphone and Bluetooth controls routed to `PlaybackCoordinator`. Decide what the session service does when a controller connects while no page exists.
 - [ ] 4.5 `idle-prompt-watcher` script and `IdlePromptCoordinator` wired.
-- [ ] 4.6 Release background playback after the pause timeout.
-- [ ] 4.7 Field test in the car: one hour, screen off, navigator active, controls from the steering wheel. Record the result in `docs/field-tests/`.
+- [ ] 4.6 Release background playback after the pause timeout: stop the foreground service and allow the page to be hidden, so Chromium throttles it.
+- [ ] 4.7 Field test in the car: one hour, screen off, navigator active, controls from the steering wheel. It also covers what the spike could not: the screen off for more than 10 minutes with the foreground service running, a Skip tap with the screen off, and the battery use of the always-visible WebView. Before it, check on an Android 17 emulator that audio started from the UI keeps playing in the background. Record the result in `docs/field-tests/`.
 
 ### Definition of done
 
@@ -153,10 +153,10 @@ flowchart LR
 ### Steps
 
 - [ ] 5.1 `ad-watcher` script with a `MutationObserver` scoped to the player.
-- [ ] 5.2 `AdSkipCoordinator` wired, with the skip method chosen in phase 0 (script click or native tap).
+- [ ] 5.2 `AdSkipCoordinator` wired, with the native tap chosen in phase 0 (ADR 0013).
 - [ ] 5.3 Settings screen for `SkipPolicy`.
 - [ ] 5.4 SQLite repository for skip records and a statistics screen with total time saved.
-- [ ] 5.5 Snapshot tests for ad markup variants.
+- [ ] 5.5 Snapshot tests for ad markup variants, including breaks of two ads with the Skip button on either ad.
 - [ ] 5.6 Diagnostics: a health warning when an ad looks skippable but no Skip button is found, and a log file the user can share.
 
 ### Definition of done
