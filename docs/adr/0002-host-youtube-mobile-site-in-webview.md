@@ -1,6 +1,6 @@
 # ADR 0002: Host the YouTube mobile website in a WebView
 
-- **Status:** Accepted, to be validated by the phase 0 spike
+- **Status:** Accepted. Validated by the [phase 0 spike](../spikes/0001-feasibility.md): sign-in works with the default WebView user agent. The visibility shield it mentions is replaced by [ADR 0012](0012-native-window-visibility-for-background-playback.md).
 - **Date:** 2026-10-16
 
 ## Context
