@@ -25,7 +25,7 @@ flowchart LR
     APK --> Obt[Obtainium on the phone]
 ```
 
-Jobs detect whether the solution and the scripts project exist yet. Before phase 1 creates them, the jobs succeed with a notice, so documentation-only changes are never blocked.
+The jobs fail closed: they run in full on every trigger, documentation-only changes included, and a missing solution, scripts project or app project fails the job instead of skipping it. A required check therefore turns green only after a real build and test run.
 
 ## Build environment
 
