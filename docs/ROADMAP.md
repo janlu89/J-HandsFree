@@ -68,7 +68,7 @@ flowchart LR
 - [x] 1.2 Create `JHandsFree.slnx` and the five source projects with the references allowed by the dependency rule.
 - [x] 1.3 Create the three test projects with xUnit v3, Shouldly and NSubstitute, each with one passing smoke test.
 - [x] 1.4 Create `src/player-scripts` with TypeScript, esbuild, Vitest, ESLint and Prettier, with one passing test.
-- [ ] 1.5 Embed the script bundle in Infrastructure.Android through an MSBuild target that builds the scripts before the C# build.
+- [x] 1.5 Embed the script bundle in Infrastructure.Android through an MSBuild target that builds the scripts before the C# build.
 - [ ] 1.6 Add the DI extension methods `AddUseCases()`, `AddPlayerProtocol()`, `AddAndroidInfrastructure()`, `AddMessaging()`, `AddPresentation()` and wire them in `MauiProgram`. `AddMessaging()` calls `AddMediator` from Mediator 3.0.2 with scanning limited to UseCases. The app starts and shows an empty shell, and a Release build with trimming confirms the generated mediator works.
 - [ ] 1.7 Confirm that CI now formats, builds and tests the solution and the player scripts instead of skipping with a notice, and that a failing test blocks the pull request.
 - [ ] 1.8 Create the signing keystore, store it as repository secrets and back it up offline. See [CI_CD.md](CI_CD.md).

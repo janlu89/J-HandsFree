@@ -1,0 +1,33 @@
+<Project>
+
+  <!-- Builds src/player-scripts with npm before the C# build and embeds the bundle, so the app and its scripts always ship together. -->
+  <PropertyGroup>
+    <PlayerScriptsDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'player-scripts'))</PlayerScriptsDirectory>
+    <PlayerScriptsBundle>$(PlayerScriptsDirectory)dist/player-scripts.js</PlayerScriptsBundle>
+    <PlayerScriptsResourceName>JHandsFree.Infrastructure.Android.player-scripts.js</PlayerScriptsResourceName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PlayerScriptsInput Include="$(PlayerScriptsDirectory)src/**/*.ts" />
+    <PlayerScriptsInput Include="$(PlayerScriptsDirectory)package.json;$(PlayerScriptsDirectory)package-lock.json;$(PlayerScriptsDirectory)tsconfig.json" />
+    <UpToDateCheckInput Include="@(PlayerScriptsInput)" />
+    <EmbeddedResource Include="$(PlayerScriptsBundle)" LogicalName="$(PlayerScriptsResourceName)" Visible="false" />
+  </ItemGroup>
+
+  <!-- npm writes node_modules/.package-lock.json on every install, so it is newer than package-lock.json until the lock file changes. -->
+  <Target Name="RestorePlayerScripts"
+          Inputs="$(PlayerScriptsDirectory)package-lock.json"
+          Outputs="$(PlayerScriptsDirectory)node_modules/.package-lock.json">
+    <Exec Command="npm ci --no-audit --no-fund" WorkingDirectory="$(PlayerScriptsDirectory)" />
+  </Target>
+
+  <Target Name="BuildPlayerScripts"
+          BeforeTargets="BeforeBuild"
+          DependsOnTargets="RestorePlayerScripts"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="@(PlayerScriptsInput)"
+          Outputs="$(PlayerScriptsBundle)">
+    <Exec Command="npm run build" WorkingDirectory="$(PlayerScriptsDirectory)" />
+  </Target>
+
+</Project>

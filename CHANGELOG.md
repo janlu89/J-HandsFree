@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Solution `JHandsFree.slnx` with the five source projects: Domain, UseCases, Infrastructure.PlayerProtocol, Infrastructure.Android and the MAUI app Mobile, which runs on Android 6.0 and later and shows its name and version.
 - Test projects for Domain, UseCases and Infrastructure.PlayerProtocol with xUnit v3, Shouldly and NSubstitute. Each starts with a test that fails when the assembly under test references something the dependency rule forbids.
 - Player scripts project, `src/player-scripts`, with TypeScript, esbuild, Vitest with jsdom, ESLint and Prettier. ESLint rejects `any`, non-null assertions, `eval` and network calls.
+- The build of Infrastructure.Android installs and bundles the player scripts with npm when they change, and embeds the bundle as the resource `JHandsFree.Infrastructure.Android.player-scripts.js`.
 
 ### Changed
 
