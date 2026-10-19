@@ -93,7 +93,7 @@ Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone
 - [x] 2.2 `PlaybackSession` with the state machine from the architecture. One test per valid transition and tests for rejected transitions.
 - [x] 2.3 `SkipPolicy` and `PauseTimeoutPolicy`.
 - [x] 2.4 `PlayerCommand` records for the page (`Play`, `Pause`, `PlayNext`, `PlayPrevious`, `LocateSkipButton`, `TapSkipButton`, `DismissIdlePrompt`), the `IPlayerCommands` port and the validated `SkipTarget`. The Mediator messages are not part of this step: Mediator 3.0.2 reports every message without a handler (MSG0005), which CI builds treat as an error, so each message arrives with its handler in steps 2.5 to 2.7.
-- [ ] 2.5 `PlaybackCoordinator` as a notification and command handler, with its messages `PlayerStateChanged`, `HandleMediaButton` and `OpenPlaylist`, tested by calling `Handle` directly with substitutes for the ports. `AddMessaging()` limits scanning to UseCases from this step: Mediator 3.0.2 refuses to scan an assembly whose compiled code does not use `Mediator.Abstractions` yet (MSG0007).
+- [x] 2.5 `PlaybackCoordinator` as a notification and command handler, with its messages `PlayerStateChanged` and `HandleMediaButton`, tested by calling `Handle` directly with substitutes for the ports. `AddMessaging()` limits scanning to UseCases from this step: Mediator 3.0.2 refuses to scan an assembly whose compiled code does not use `Mediator.Abstractions` yet (MSG0007). The container validates every handler's dependencies at startup, so until the real adapters exist the composition root registers disconnected ones, which do nothing, for `IPlayerCommands`, `ISystemMediaSession` and `IPlayerVisibility`.
 - [ ] 2.6 `AdSkipCoordinator` with `AdStarted`, `AdBecameSkippable`, `SkipTargetLocated` and `AdEnded`, tested the same way, including disabled policy, non-skippable ads, the skip delay, the locate-then-tap sequence, and a skip that counts only when the break ends within one second of the tap.
 - [ ] 2.7 `IdlePromptCoordinator` with `IdlePromptShown`, `SkipPolicyHandlers` with `GetSkipPolicy` and `UpdateSkipPolicy`, and `SkipTotalsHandler` with `GetSkipTotals`.
 - [ ] 2.8 `IsolatingNotificationPublisher` and `LoggingBehavior`, each with unit tests.
@@ -118,7 +118,7 @@ Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone
 - [ ] 3.3 `bridge-client` and `selectors` scripts with the message envelope.
 - [ ] 3.4 `player-controller` script: state, metadata and commands.
 - [ ] 3.5 PlayerProtocol translator with a `System.Text.Json` source-generated context, and contract fixtures in `tests/contract-fixtures/` tested from C# and TypeScript.
-- [ ] 3.6 `WebViewPlayerBridge` implementing `IPlayerCommands` and publishing translated notifications through `IPublisher`. `ScriptReady` and `ScriptFailed` arrive here, with a handler that logs the bundle versions and script errors.
+- [ ] 3.6 `WebViewPlayerBridge` implementing `IPlayerCommands` and publishing translated notifications through `IPublisher`. `ScriptReady` and `ScriptFailed` arrive here, with a handler that logs the bundle versions and script errors. The bridge replaces the disconnected `IPlayerCommands` adapter.
 - [ ] 3.7 Snapshot tests for the selectors against saved player markup.
 - [ ] 3.8 Sign-in flow with the default WebView user agent, validated in phase 0. Confirm that the session survives an app restart, and record whether sign-in needs third-party cookies.
 
@@ -135,8 +135,8 @@ Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone
 
 ### Steps
 
-- [ ] 4.1 `KeepVisibleWebView`, a `MauiWebView` subclass created by a custom WebView handler that reports its window as visible during background playback, and the `IPlayerVisibility` adapter. See ADR 0012.
-- [ ] 4.2 `PlaybackService` as a Media3 `MediaSessionService` and `WebViewSessionPlayer` as a `SimpleBasePlayer`, with the AndroidX pins from ADR 0014. The session starts by itself when the page reports `playing`.
+- [ ] 4.1 `KeepVisibleWebView`, a `MauiWebView` subclass created by a custom WebView handler that reports its window as visible during background playback, and the `IPlayerVisibility` adapter, which replaces the disconnected one. See ADR 0012.
+- [ ] 4.2 `PlaybackService` as a Media3 `MediaSessionService` and `WebViewSessionPlayer` as a `SimpleBasePlayer`, with the AndroidX pins from ADR 0014. The session starts by itself when the page reports `playing`. `WebViewSessionPlayer` replaces the disconnected `ISystemMediaSession` adapter.
 - [ ] 4.3 Manifest permissions `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, notification permission request, and a one-time prompt to exclude the app from battery optimization.
 - [ ] 4.4 Lock screen, notification, headphone and Bluetooth controls routed to `PlaybackCoordinator`. Decide what the session service does when a controller connects while no page exists.
 - [ ] 4.5 `idle-prompt-watcher` script and `IdlePromptCoordinator` wired.
@@ -176,7 +176,7 @@ Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone
 
 - [ ] 6.1 Drive mode screen with large controls.
 - [ ] 6.2 Sleep timer.
-- [ ] 6.3 Home screen shortcuts to favourite playlists.
+- [ ] 6.3 Home screen shortcuts to favourite playlists, with the `OpenPlaylist` command and its handler. Opening an address needs a native navigation command that the message contract does not have yet.
 - [ ] 6.4 Seek back and forward buttons in the notification, and configurable headphone double and triple press.
 - [ ] 6.5 Resume the last session on launch.
 - [ ] 6.6 Remote selector updates from a versioned JSON file in this repository.

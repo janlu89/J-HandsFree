@@ -114,3 +114,8 @@ dotnet_naming_rule.locals_are_camel_case.symbols = local_symbols
 dotnet_naming_rule.locals_are_camel_case.style = camel_style
 dotnet_naming_symbols.local_symbols.applicable_kinds = parameter, local
 dotnet_naming_style.camel_style.capitalization = camel_case
+
+# Test names follow Unit_Scenario_ExpectedOutcome, also when the test is async: the Async suffix tells a caller to
+# await, and only the test framework calls a test.
+[tests/**.cs]
+dotnet_naming_rule.async_methods_end_with_async.severity = none

@@ -223,7 +223,7 @@ A message is added in the same change as its first handler. Mediator's source ge
 
 | Handler | Handles | Decides | Uses ports |
 | --- | --- | --- | --- |
-| `PlaybackCoordinator` | `PlayerStateChanged`, `HandleMediaButton`, `OpenPlaylist` | Updates the session; keeps the system media session in sync; forwards play, pause, next; keeps the page visible during background playback and allows it to be hidden after the pause timeout | `IPlayerCommands`, `ISystemMediaSession`, `IPlayerVisibility`, `TimeProvider` |
+| `PlaybackCoordinator` | `PlayerStateChanged`, `HandleMediaButton`, and `OpenPlaylist` from step 6.3 | Updates the session; keeps the system media session in sync; forwards play, pause, next; keeps the page visible during background playback and allows it to be hidden after the pause timeout | `IPlayerCommands`, `ISystemMediaSession`, `IPlayerVisibility`, `TimeProvider` |
 | `AdSkipCoordinator` | `AdStarted`, `AdBecameSkippable`, `SkipTargetLocated`, `AdEnded` | Applies `SkipPolicy`; sends `LocateSkipButton`, then `TapSkipButton` with the reported rectangle; records a `SkipRecord` when the break ends within one second of the tap | `IPlayerCommands`, `ISkipRecordRepository`, `ISettingsStore`, `TimeProvider` |
 | `IdlePromptCoordinator` | `IdlePromptShown` | Dismisses the "Continue watching?" prompt | `IPlayerCommands` |
 | `SkipPolicyHandlers` | `GetSkipPolicy`, `UpdateSkipPolicy` | Reads and saves the user's skip settings | `ISettingsStore` |
@@ -296,6 +296,8 @@ Time is read through the built-in `TimeProvider` abstraction instead of a custom
 | `WebViewSessionPlayer` | Media3 `SimpleBasePlayer` | A player facade whose state comes from `PlaybackSession`. It does not decode media; it mirrors the WebView and sends `HandleMediaButton` commands through Mediator's `ISender`. Implements `ISystemMediaSession`. |
 | `SharedPreferencesSettingsStore` | Android `SharedPreferences` | Small key-value settings, without a MAUI dependency in Infrastructure. |
 | `SqliteSkipRecordRepository` | SQLite | Skip statistics. The library is chosen in phase 5. |
+
+Until an adapter exists, the composition root registers a disconnected one that does nothing, because the container validates every handler's dependencies at startup. Each real adapter replaces its disconnected one.
 
 The WebView itself is created by the Mobile project (it is a UI element): a custom WebView handler creates `KeepVisibleWebView`, a subclass of MAUI's `MauiWebView` that reports its window as visible to Chromium while background playback is active ([ADR 0012](../adr/0012-native-window-visibility-for-background-playback.md)). `PlayerPageVisibility`, also in Mobile, implements `IPlayerVisibility` by switching that override; it is the one adapter outside Infrastructure.Android, because the view it controls is a MAUI type. When the MAUI handler connects, the native `Android.Webkit.WebView` is handed to the bridge and the injector. Infrastructure never references MAUI.
 
