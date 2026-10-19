@@ -191,8 +191,8 @@ stateDiagram-v2
     Loading --> PlayingAd : pre-roll ad starts
     PlayingContent --> PlayingAd : mid-roll ad starts
     PlayingAd --> AdSkippable : Skip button appears
-    AdSkippable --> PlayingContent : skip pressed
-    PlayingAd --> PlayingContent : non-skippable ad ends
+    AdSkippable --> PlayingContent : ad ends, usually after the skip
+    PlayingAd --> PlayingContent : ad ends without a Skip button
     PlayingContent --> Loading : next item in playlist
     PlayingContent --> Paused : pause
     Paused --> PlayingContent : resume
@@ -201,7 +201,9 @@ stateDiagram-v2
     Ended --> [*]
 ```
 
-Every transition not drawn above is invalid and is rejected by `PlaybackSession`. Each edge has a unit test.
+Every transition not drawn above is invalid and is rejected by `PlaybackSession`. Each edge has a unit test. A rejected request returns an invalid `TransitionResult` and changes nothing, because player events can arrive out of order or twice; the coordinator logs it and carries on.
+
+The current video is not part of the state. `StartContent` sets it, and `UpdateVideo` replaces it while an item is active without changing the state, which covers the content that follows a pre-roll ad.
 
 ## 7. Use cases, messages and ports
 
