@@ -177,8 +177,8 @@ Source code dependencies point inwards only. The Domain knows nothing about Andr
 | `VideoId` | Value object | Validated YouTube video identifier: eleven characters from `A-Z`, `a-z`, `0-9`, `-` and `_` |
 | `AdBreak` | Value object | One ad break, whatever the number of ads in it: kind, start time, whether it became skippable. The kind is `Unknown` until the Skip button appears or the break ends |
 | `AdKind` | Enum | `Unknown` (the default), `Skippable`, `NonSkippable` |
-| `SkipPolicy` | Policy | Whether auto skip is enabled and the delay before pressing Skip |
-| `PauseTimeoutPolicy` | Policy | How long a pause may last before background playback is released (default 10 minutes) |
+| `SkipPolicy` | Policy | Whether auto skip is enabled and the delay before pressing Skip, from zero to ten seconds (default: enabled, no delay). `ShouldSkip` allows only a skippable break |
+| `PauseTimeoutPolicy` | Policy | How long a pause may last before background playback is released (default 10 minutes, as long as Media3 keeps the foreground service after a pause). `HasExpired` receives both instants, so the domain never reads a clock |
 | `SkipRecord` | Value object | What was skipped, when, and how many seconds it saved |
 
 ### Playback state machine
