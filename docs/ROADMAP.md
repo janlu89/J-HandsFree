@@ -92,10 +92,10 @@ Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone
 - [x] 2.1 Value objects `VideoId`, `VideoMetadata`, `AdBreak` with validation.
 - [x] 2.2 `PlaybackSession` with the state machine from the architecture. One test per valid transition and tests for rejected transitions.
 - [x] 2.3 `SkipPolicy` and `PauseTimeoutPolicy`.
-- [ ] 2.4 Messages as Mediator records: notifications for player events, commands for actions, queries for reads (see the architecture, section 7). `PlayerCommand` records for the page and the ports. `AddMessaging()` limits scanning to UseCases from this step: Mediator 3.0.2 refuses to scan an assembly whose compiled code does not use `Mediator.Abstractions` yet.
-- [ ] 2.5 `PlaybackCoordinator` as a notification and command handler, tested by calling `Handle` directly with substitutes for the ports.
-- [ ] 2.6 `AdSkipCoordinator`, tested the same way, including disabled policy, non-skippable ads, the skip delay, the locate-then-tap sequence, and a skip that counts only when the break ends within one second of the tap.
-- [ ] 2.7 `IdlePromptCoordinator`, `SkipPolicyHandlers` and `SkipTotalsHandler`.
+- [x] 2.4 `PlayerCommand` records for the page (`Play`, `Pause`, `PlayNext`, `PlayPrevious`, `LocateSkipButton`, `TapSkipButton`, `DismissIdlePrompt`), the `IPlayerCommands` port and the validated `SkipTarget`. The Mediator messages are not part of this step: Mediator 3.0.2 reports every message without a handler (MSG0005), which CI builds treat as an error, so each message arrives with its handler in steps 2.5 to 2.7.
+- [ ] 2.5 `PlaybackCoordinator` as a notification and command handler, with its messages `PlayerStateChanged`, `HandleMediaButton` and `OpenPlaylist`, tested by calling `Handle` directly with substitutes for the ports. `AddMessaging()` limits scanning to UseCases from this step: Mediator 3.0.2 refuses to scan an assembly whose compiled code does not use `Mediator.Abstractions` yet (MSG0007).
+- [ ] 2.6 `AdSkipCoordinator` with `AdStarted`, `AdBecameSkippable`, `SkipTargetLocated` and `AdEnded`, tested the same way, including disabled policy, non-skippable ads, the skip delay, the locate-then-tap sequence, and a skip that counts only when the break ends within one second of the tap.
+- [ ] 2.7 `IdlePromptCoordinator` with `IdlePromptShown`, `SkipPolicyHandlers` with `GetSkipPolicy` and `UpdateSkipPolicy`, and `SkipTotalsHandler` with `GetSkipTotals`.
 - [ ] 2.8 `IsolatingNotificationPublisher` and `LoggingBehavior`, each with unit tests.
 - [ ] 2.9 Composition test in `JHandsFree.UseCases.Tests`: reference `Mediator.SourceGenerator`, build a real service provider, publish `AdBecameSkippable` and assert that `IPlayerCommands` received `LocateSkipButton`; publish to a failing handler and assert the other handlers still ran.
 
@@ -118,7 +118,7 @@ Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone
 - [ ] 3.3 `bridge-client` and `selectors` scripts with the message envelope.
 - [ ] 3.4 `player-controller` script: state, metadata and commands.
 - [ ] 3.5 PlayerProtocol translator with a `System.Text.Json` source-generated context, and contract fixtures in `tests/contract-fixtures/` tested from C# and TypeScript.
-- [ ] 3.6 `WebViewPlayerBridge` implementing `IPlayerCommands` and publishing translated notifications through `IPublisher`.
+- [ ] 3.6 `WebViewPlayerBridge` implementing `IPlayerCommands` and publishing translated notifications through `IPublisher`. `ScriptReady` and `ScriptFailed` arrive here, with a handler that logs the bundle versions and script errors.
 - [ ] 3.7 Snapshot tests for the selectors against saved player markup.
 - [ ] 3.8 Sign-in flow with the default WebView user agent, validated in phase 0. Confirm that the session survives an app restart, and record whether sign-in needs third-party cookies.
 

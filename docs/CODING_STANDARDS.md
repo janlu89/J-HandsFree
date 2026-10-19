@@ -121,7 +121,8 @@ Additional rules:
 
 - Messages are `sealed record` types in UseCases, grouped by feature folder, one message per file.
 - Notifications describe something that happened, in the past tense: `AdBecameSkippable`. Commands ask for something, in the imperative: `UpdateSkipPolicy`. Queries start with `Get`: `GetSkipTotals`.
-- A command or query has exactly one handler. A notification may have several.
+- A command or query has exactly one handler. A notification has one or more.
+- A message is added in the same change as its first handler: the source generator reports a message without a handler (MSG0005), and CI treats warnings as errors.
 - Handlers stay thin: they translate the message into calls on the Domain and on ports. Rules live in the Domain.
 - Pipeline behaviours and the notification publisher contain cross-cutting concerns only (logging, failure isolation), never business rules.
 - The mediator is for in-process dispatch from the edges (bridge, system media session, view models) to the use cases. Handlers do not send messages to other handlers to chain logic; shared logic belongs in the Domain or in a small injected collaborator.
