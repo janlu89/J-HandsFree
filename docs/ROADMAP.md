@@ -91,7 +91,7 @@ Met on 19 October 2026 with v0.1.0: Obtainium installed the release on the phone
 
 - [x] 2.1 Value objects `VideoId`, `VideoMetadata`, `AdBreak` with validation.
 - [x] 2.2 `PlaybackSession` with the state machine from the architecture. One test per valid transition and tests for rejected transitions.
-- [ ] 2.3 `SkipPolicy` and `PauseTimeoutPolicy`.
+- [x] 2.3 `SkipPolicy` and `PauseTimeoutPolicy`.
 - [ ] 2.4 Messages as Mediator records: notifications for player events, commands for actions, queries for reads (see the architecture, section 7). `PlayerCommand` records for the page and the ports. `AddMessaging()` limits scanning to UseCases from this step: Mediator 3.0.2 refuses to scan an assembly whose compiled code does not use `Mediator.Abstractions` yet.
 - [ ] 2.5 `PlaybackCoordinator` as a notification and command handler, tested by calling `Handle` directly with substitutes for the ports.
 - [ ] 2.6 `AdSkipCoordinator`, tested the same way, including disabled policy, non-skippable ads, the skip delay, the locate-then-tap sequence, and a skip that counts only when the break ends within one second of the tap.
