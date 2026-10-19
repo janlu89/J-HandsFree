@@ -217,6 +217,8 @@ Messages are immutable records in UseCases. They are dispatched in process by Me
 | Command | `ICommand` | Imperative | `HandleMediaButton`, `OpenPlaylist`, `UpdateSkipPolicy` | `WebViewSessionPlayer`, view models, through `ISender` |
 | Query | `IQuery<T>` | `Get...` | `GetSkipPolicy`, `GetSkipTotals` | View models, through `ISender` |
 
+A message is added in the same change as its first handler. Mediator's source generator reports every message without a handler (MSG0005), notifications included, and CI builds treat warnings as errors, so a forgotten handler stays a compile-time error.
+
 ### Coordinators and handlers
 
 | Handler | Handles | Decides | Uses ports |
