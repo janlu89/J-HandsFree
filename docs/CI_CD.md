@@ -9,7 +9,7 @@ All automation runs on GitHub Actions with GitHub-hosted Ubuntu runners. Standar
 | `.github/workflows/ci.yml` | Pull requests into `dev` or `master`, pushes to `dev`, manual | `Build and test`, `Player scripts` | Format check, build, unit tests with coverage, script lint, tests and bundle |
 | `.github/workflows/pr-checks.yml` | Pull request opened, edited, updated | `Source branch`, `Conventional title` | Only `dev` may target `master`; titles are Conventional Commits |
 | `.github/workflows/release.yml` | Push to `master`, manual | `Publish release` | Signed APK, tag `vX.Y.Z`, GitHub Release |
-| `.github/dependabot.yml` | Weekly | Dependabot | Grouped updates for NuGet, npm and Actions, targeting `dev` |
+| `.github/dependabot.yml` | Weekly | Dependabot | Grouped updates for NuGet, npm and Actions, targeting `dev`. TypeScript stays below 6.1 until typescript-eslint accepts a newer version |
 
 ```mermaid
 flowchart LR
