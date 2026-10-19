@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Domain value objects: `VideoId`, which accepts only the eleven URL-safe characters of a YouTube video id, `VideoMetadata` with an optional duration for live streams, and `AdBreak`, whose kind stays unknown until the Skip button appears or the break ends.
+- `PlaybackSession`, the playback state machine from the architecture. A request that the current state does not allow returns an invalid `TransitionResult` and changes nothing.
 
 ### Changed
 
