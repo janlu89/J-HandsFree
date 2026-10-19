@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Domain value objects: `VideoId`, which accepts only the eleven URL-safe characters of a YouTube video id, `VideoMetadata` with an optional duration for live streams, and `AdBreak`, whose kind stays unknown until the Skip button appears or the break ends.
 - `PlaybackSession`, the playback state machine from the architecture. A request that the current state does not allow returns an invalid `TransitionResult` and changes nothing.
+- `PlaybackCoordinator`, which follows the state the page reports, keeps the system media session in sync, forwards media buttons to the page and releases background playback after a pause of ten minutes. Until their real adapters exist, its ports are connected to adapters that do nothing.
 - `PlayerCommand` records for the YouTube page and the `IPlayerCommands` port, with a validated `SkipTarget` for the native Skip tap.
 - `SkipPolicy`, which allows a skip only for a skippable break while auto skip is enabled, with a delay of up to ten seconds, and `PauseTimeoutPolicy`, which releases background playback after a pause of ten minutes by default.
 

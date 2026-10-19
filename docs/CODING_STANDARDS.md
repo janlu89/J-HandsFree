@@ -25,7 +25,7 @@ These rules apply to every line of production and test code. They follow Robert 
 | Private fields | `_camelCase` | `_skipPolicy` |
 | Locals and parameters | camelCase, full words | `videoId`, not `vid` |
 | Constants | PascalCase | `DefaultPauseTimeout` |
-| Test methods | `Unit_Scenario_ExpectedOutcome` | `Skip_WhenPolicyDisabled_SendsNoCommand` |
+| Test methods | `Unit_Scenario_ExpectedOutcome`, without the `Async` suffix even when async: only the test framework calls them | `Skip_WhenPolicyDisabled_SendsNoCommand` |
 
 Additional rules:
 
@@ -40,7 +40,7 @@ Additional rules:
 - **Small.** Aim for under 15 lines; more than 25 needs a reason in the pull request.
 - **Do one thing.** If you can extract a meaningfully named function from it, it does more than one thing.
 - **One level of abstraction per function.** A function either orchestrates steps or performs a low-level detail, never both. Read top to bottom like a narrative: each function is followed by the functions it calls (the step-down rule).
-- **Few arguments.** Zero to two is ideal; three is the maximum. More than three means a missing type.
+- **Few arguments.** Zero to two is ideal; three is the maximum. More than three means a missing type. The limit applies to methods and to the constructors of values. A constructor that receives injected dependencies takes one per collaborator; more than six suggests the class does too much.
 - **No flag arguments.** `Skip(true)` hides two functions. Write `SkipNow()` and `ScheduleSkip()`.
 - **Command-query separation.** A method either changes state or returns information, not both.
 - **No hidden side effects.** A method named `GetSkipPolicy` never writes anything.
